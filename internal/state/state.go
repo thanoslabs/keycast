@@ -7,10 +7,9 @@ import (
 	"github.com/thanoslabs/keycast/internal/events"
 )
 
-// Store tracks currently pressed physical keys.
 type Store struct {
-	mu sync.RWMutex
-	pressed map[string]bool
+	mu       sync.RWMutex
+	pressed  map[string]bool
 	sequence uint64
 }
 
@@ -28,7 +27,9 @@ func (s *Store) Apply(key events.KeyEvent) (events.Envelope, bool) {
 	} else {
 		delete(s.pressed, key.Code)
 	}
-	if was == (key.Action == events.Down) { return events.Envelope{}, false }
+	if was == (key.Action == events.Down) {
+		return events.Envelope{}, false
+	}
 	s.sequence++
 	return events.Envelope{Version: 1, Type: "input.key", Sequence: s.sequence, Data: key}, true
 }
@@ -37,7 +38,9 @@ func (s *Store) Snapshot() (uint64, []string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	keys := make([]string, 0, len(s.pressed))
-	for key := range s.pressed { keys = append(keys, key) }
+	for key := range s.pressed {
+		keys = append(keys, key)
+	}
 	sort.Strings(keys)
 	return s.sequence, keys
 }
