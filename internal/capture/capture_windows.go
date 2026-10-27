@@ -88,7 +88,7 @@ var (
 )
 
 type session struct{ emit func(events.KeyEvent) }
-\nvar active *session
+var active *session
 
 // Run captures physical keyboard transitions on a dedicated Windows message thread.
 // Only one capture session is supported per process.
