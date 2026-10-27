@@ -22,9 +22,9 @@ const (
 func DecodeMouseButtons(flags uint16, data uint16) []events.KeyEvent {
 	out := make([]events.KeyEvent, 0, 12)
 	for _, button := range []struct {
-		down     uint16
-		up       uint16
-		code     string
+		down uint16
+		up   uint16
+		code string
 	}{
 		{mouseLeftDown, mouseLeftUp, "MouseLeft"},
 		{mouseRightDown, mouseRightUp, "MouseRight"},
