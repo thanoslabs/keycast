@@ -8,10 +8,10 @@ import (
 
 func TestDecodeMouseButtons(t *testing.T) {
 	tests := []struct {
-		name string
+		name  string
 		flags uint16
-		data uint16
-		want []events.KeyEvent
+		data  uint16
+		want  []events.KeyEvent
 	}{
 		{"left press", mouseLeftDown, 0, []events.KeyEvent{{Code: "MouseLeft", Action: events.Down}}},
 		{"multiple releases", mouseRightUp | mouseMiddleUp, 0, []events.KeyEvent{{Code: "MouseRight", Action: events.Up}, {Code: "MouseMiddle", Action: events.Up}}},
