@@ -63,12 +63,12 @@ type rawHeader struct {
 	WParam uintptr
 }
 type rawMouse struct {
-	Flags uint16
-	ButtonFlags uint16
-	ButtonData uint16
-	RawButtons uint32
-	LastX int32
-	LastY int32
+	Flags            uint16
+	ButtonFlags      uint16
+	ButtonData       uint16
+	RawButtons       uint32
+	LastX            int32
+	LastY            int32
 	ExtraInformation uint32
 }
 
