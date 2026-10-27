@@ -1,0 +1,17 @@
+name: Windows Build
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  windows-cross-compile:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - name: Cross-compile Windows amd64
+        run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/keycast.exe ./cmd/keycast
