@@ -142,8 +142,8 @@ func Run(ctx context.Context, emit func(events.KeyEvent)) error {
 		if status == 0 {
 			return nil
 		}
-		translateMessage.Call(uintptr(unsafe.Pointer(&msg))
-		dispatchMessage.Call(uintptr(unsafe.Pointer(&msg))
+		translateMessage.Call(uintptr(unsafe.Pointer(&msg)))
+		dispatchMessage.Call(uintptr(unsafe.Pointer(&msg)))
 	}
 }
 
