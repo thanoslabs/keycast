@@ -3,18 +3,18 @@ package capture
 import "github.com/thanoslabs/keycast/internal/events"
 
 const (
-	mouseLeftDown uint16 = 0x0001
-	mouseLeftUp uint16 = 0x0002
-	mouseRightDown uint16 = 0x0004
-	mouseRightUp uint16 = 0x0008
-	mouseMiddleDown uint16 = 0x0010
-	mouseMiddleUp uint16 = 0x0020
+	mouseLeftDown    uint16 = 0x0001
+	mouseLeftUp      uint16 = 0x0002
+	mouseRightDown   uint16 = 0x0004
+	mouseRightUp     uint16 = 0x0008
+	mouseMiddleDown  uint16 = 0x0010
+	mouseMiddleUp    uint16 = 0x0020
 	mouseButton4Down uint16 = 0x0040
-	mouseButton4Up uint16 = 0x0080
+	mouseButton4Up   uint16 = 0x0080
 	mouseButton5Down uint16 = 0x0100
-	mouseButton5Up uint16 = 0x0200
-	mouseWheel uint16 = 0x0400
-	mouseHWheel uint16 = 0x0800
+	mouseButton5Up   uint16 = 0x0200
+	mouseWheel       uint16 = 0x0400
+	mouseHWheel      uint16 = 0x0800
 )
 
 // DecodeMouseButtons translates Raw Input mouse button flags into state transitions.
@@ -22,9 +22,9 @@ const (
 func DecodeMouseButtons(flags uint16, data uint16) []events.KeyEvent {
 	out := make([]events.KeyEvent, 0, 12)
 	for _, button := range []struct {
-		down uint16
-		up uint16
-		code string
+		down     uint16
+		up       uint16
+		code     string
 	}{
 		{mouseLeftDown, mouseLeftUp, "MouseLeft"},
 		{mouseRightDown, mouseRightUp, "MouseRight"},
@@ -40,7 +40,7 @@ func DecodeMouseButtons(flags uint16, data uint16) []events.KeyEvent {
 		}
 	}
 	for _, wheel := range []struct {
-		flag uint16
+		flag     uint16
 		positive string
 		negative string
 	}{
