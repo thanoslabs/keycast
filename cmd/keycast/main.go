@@ -1,22 +1,24 @@
 package main
 
 import (
-	"flag"
-	"fmt"
-	"log"
-	"net/http"
+ "context"
+ "flag"
+ "fmt"
+ "log"
+ "net/http"
+ "os"
+ "os/signal"
+ "github.com/thanoslabs/keycast/internal/server"
+ "github.com/thanoslabs/keycast/internal/simulate"
 )
-
-func main() {
-	port := flag.Int("port", 9867, "local HTTP port")
-	flag.Parse()
-
-	mux := http.NewServeMux()
-	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"status":"ok"}`))
-	})
-	addr := fmt.Sprintf("127.0.0.1:%d", *port)
-	log.Printf("Keycast development server listening on http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, mux))
+func main(){
+ port:=flag.Int("port",9867,"local HTTP port")
+ simulated:=flag.Bool("simulate",false,"emit synthetic keyboard input")
+ flag.Parse()
+ hub:=server.New()
+ ctx,stop:=signal.NotifyContext(context.Background(),os.Interrupt);defer stop()
+ if *simulated{go simulate.Run(ctx,hub.Emit)}
+ addr:=fmt.Sprintf("127.0.0.1:%d",*port)
+ log.Printf("Keycast listening on http://%s",addr)
+ log.Fatal(http.ListenAndServe(addr,hub.Routes()))
 }
