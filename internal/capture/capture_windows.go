@@ -26,69 +26,69 @@ const (
 
 type point struct{ X, Y int32 }
 type message struct {
-	Hwnd uintptr
-	Msg uint32
-	_ uint32
-	WParam uintptr
-	LParam uintptr
-	Time uint32
-	Pt point
-	Private uint32
+	Hwnd              uintptr
+	Msg               uint32
+	_                 uint32
+	WParam            uintptr
+	LParam            uintptr
+	Time              uint32
+	Pt                point
+	Private           uint32
 }
 type wndClass struct {
-	Size uint32
-	Style uint32
-	WndProc uintptr
-	ClsExtra int32
-	WndExtra int32
-	Instance uintptr
-	Icon uintptr
-	Cursor uintptr
-	Background uintptr
-	MenuName *uint16
-	ClassName *uint16
-	SmallIcon uintptr
+	Size              uint32
+	Style             uint32
+	WndProc           uintptr
+	ClsExtra          int32
+	WndExtra          int32
+	Instance          uintptr
+	Icon              uintptr
+	Cursor            uintptr
+	Background        uintptr
+	MenuName          *uint16
+	ClassName         *uint16
+	SmallIcon         uintptr
 }
 type rawDevice struct {
-	UsagePage uint16
-	Usage uint16
-	Flags uint32
-	Target uintptr
+	UsagePage         uint16
+	Usage             uint16
+	Flags             uint32
+	Target            uintptr
 }
 type rawHeader struct {
-	Type uint32
-	Size uint32
-	Device uintptr
-	WParam uintptr
+	Type              uint32
+	Size              uint32
+	Device            uintptr
+	WParam            uintptr
 }
 type rawKeyboard struct {
-	MakeCode uint16
-	Flags uint16
-	Reserved uint16
-	VKey uint16
-	Message uint32
-	ExtraInformation uint32
+	MakeCode          uint16
+	Flags             uint16
+	Reserved          uint16
+	VKey              uint16
+	Message           uint32
+	ExtraInformation  uint32
 }
 
 var (
-	user32 = syscall.NewLazyDLL("user32.dll")
-	kernel32 = syscall.NewLazyDLL("kernel32.dll")
-	registerClass = user32.NewProc("RegisterClassExW")
-	createWindow = user32.NewProc("CreateWindowExW")
-	destroyWindow = user32.NewProc("DestroyWindow")
-	defWindowProc = user32.NewProc("DefWindowProcW")
-	registerDevices = user32.NewProc("RegisterRawInputDevices")
-	getRawData = user32.NewProc("GetRawInputData")
-	getMessage = user32.NewProc("GetMessageW")
-	translateMessage = user32.NewProc("TranslateMessage")
-	dispatchMessage = user32.NewProc("DispatchMessageW")
-	postThreadMessage = user32.NewProc("PostThreadMessageW")
-	getThreadID = kernel32.NewProc("GetCurrentThreadId")
-	getModuleHandle = kernel32.NewProc("GetModuleHandleW")
+	user32            = syscall.NewLazyDLL("user32.dll")
+	kernel32         = syscall.NewLazyDLL("kernel32.dll")
+	registerClass      = user32.NewProc("RegisterClassExW")
+	createWindow       = user32.NewProc("CreateWindowExW")
+	destroyWindow      = user32.NewProc("DestroyWindow")
+	defWindowProc      = user32.NewProc("DefWindowProcW")
+	registerDevices    = user32.NewProc("RegisterRawInputDevices")
+	getRawData         = user32.NewProc("GetRawInputData")
+	getMessage         = user32.NewProc("GetMessageW")
+	translateMessage   = user32.NewProc("TranslateMessage")
+	dispatchMessage    = user32.NewProc("DispatchMessageW")
+	postThreadMessage  = user32.NewProc("PostThreadMessageW")
+	getThreadID        = kernel32.NewProc("GetCurrentThreadId")
+	getModuleHandle    = kernel32.NewProc("GetModuleHandleW")
 )
 
-type session struct { emit func(events.KeyEvent) }
-var active *session
+type session struct{ emit func(events.KeyEvent) }
+\nvar active *session
 
 // Run captures physical keyboard transitions on a dedicated Windows message thread.
 // Only one capture session is supported per process.
