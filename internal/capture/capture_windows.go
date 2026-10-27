@@ -18,6 +18,7 @@ const (
 	wmQuit          = 0x0012
 	ridInput        = 0x10000003
 	rimTypeKeyboard = 1
+	rimTypeMouse    = 0
 	ridevInputSink  = 0x00000100
 	riKeyBreak      = 0x0001
 	riKeyE0         = 0x0002
@@ -61,6 +62,16 @@ type rawHeader struct {
 	Device uintptr
 	WParam uintptr
 }
+type rawMouse struct {
+	Flags uint16
+	ButtonFlags uint16
+	ButtonData uint16
+	RawButtons uint32
+	LastX int32
+	LastY int32
+	ExtraInformation uint32
+}
+
 type rawKeyboard struct {
 	MakeCode         uint16
 	Flags            uint16
@@ -120,8 +131,11 @@ func Run(ctx context.Context, emit func(events.KeyEvent)) error {
 	defer destroyWindow.Call(hwnd)
 	active = &session{emit: emit}
 	defer func() { active = nil }()
-	device := rawDevice{UsagePage: 1, Usage: 6, Flags: ridevInputSink, Target: hwnd}
-	ok, _, err := registerDevices.Call(uintptr(unsafe.Pointer(&device)), 1, unsafe.Sizeof(device))
+	devices := [2]rawDevice{
+		{UsagePage: 1, Usage: 6, Flags: ridevInputSink, Target: hwnd},
+		{UsagePage: 1, Usage: 2, Flags: ridevInputSink, Target: hwnd},
+	}
+	ok, _, err := registerDevices.Call(uintptr(unsafe.Pointer(&devices[0])), uintptr(len(devices)), unsafe.Sizeof(devices[0]))
 	if ok == 0 {
 		return fmt.Errorf("RegisterRawInputDevices: %v", err)
 	}
@@ -152,16 +166,23 @@ func (s *session) read(handle uintptr) {
 	var size uint32
 	headerSize := uint32(unsafe.Sizeof(rawHeader{}))
 	result, _, _ := getRawData.Call(handle, ridInput, 0, uintptr(unsafe.Pointer(&size)), uintptr(headerSize))
-	if uint32(result) == ^uint32(0) || size < headerSize+uint32(unsafe.Sizeof(rawKeyboard{})) || size > 65536 {
+	if uint32(result) == ^uint32(0) || size < headerSize+uint32(unsafe.Sizeof(rawMouse{})) || size > 65536 {
 		return
 	}
 	buf := make([]byte, size)
 	result, _, _ = getRawData.Call(handle, ridInput, uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&size)), uintptr(headerSize))
-	if uint32(result) == ^uint32(0) || result < uintptr(headerSize)+unsafe.Sizeof(rawKeyboard{}) {
+	if uint32(result) == ^uint32(0) || result < uintptr(headerSize)+unsafe.Sizeof(rawMouse{}) {
 		return
 	}
 	header := (*rawHeader)(unsafe.Pointer(&buf[0]))
-	if header.Type != rimTypeKeyboard {
+	if header.Type == rimTypeMouse {
+		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
+		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
+			s.emit(event)
+		}
+		return
+	}
+	if header.Type != rimTypeKeyboard || size < headerSize+uint32(unsafe.Sizeof(rawKeyboard{})) {
 		return
 	}
 	key := (*rawKeyboard)(unsafe.Pointer(&buf[headerSize]))
