@@ -9,6 +9,7 @@ import (
 	"os"
 	"os/signal"
 
+	"github.com/thanoslabs/keycast/internal/capture"
 	"github.com/thanoslabs/keycast/internal/server"
 	"github.com/thanoslabs/keycast/internal/simulate"
 )
@@ -22,6 +23,12 @@ func main() {
 	defer stop()
 	if *simulated {
 		go simulate.Run(ctx, hub.Emit)
+	} else {
+		go func() {
+			if err := capture.Run(ctx, hub.Emit); err != nil {
+				log.Printf("native input capture unavailable: %v", err)
+			}
+		}()
 	}
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("Keycast listening on http://%s", addr)
