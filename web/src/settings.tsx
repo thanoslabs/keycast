@@ -23,6 +23,7 @@ export function SettingsDashboard() {
   const appearance = profile ?? { ...settings, layout: defaultLayout };
   const layout = profile?.layout ?? defaultLayout;
   const [selectedKey, setSelectedKey] = useState("Space");
+  const [demo, setDemo] = useState(false);
   const placement = profile?.placement ?? defaultPlacement;
   const overlayUrl = `${window.location.origin}/overlay/default?profile=${encodeURIComponent(selected)}${selected === "default" ? `&layout=${layout}` : ""}`;
 
@@ -178,7 +179,8 @@ export function SettingsDashboard() {
     </div>
     <section className="layout-preview">
       <h2>OBS preview</h2>
-      <iframe title="OBS overlay preview" src={overlayUrl} className="overlay-preview-frame" />
+      <label><input type="checkbox" checked={demo} onChange={event => setDemo(event.target.checked)} /> Simulate keyboard and mouse input in preview</label>
+      <iframe title="OBS overlay preview" src={`${overlayUrl}&demo=${demo ? "1" : "0"}`} className="overlay-preview-frame" />
       <p><a href={overlayUrl} target="_blank" rel="noreferrer">Open selected OBS overlay</a></p>
       <p className="hint">Browser source: <code>{overlayUrl}</code></p>
       <button type="button" onClick={() => void navigator.clipboard.writeText(overlayUrl).then(() => setStatus("URL copied")).catch(() => setStatus("Unable to copy URL"))}>Copy OBS URL</button>
