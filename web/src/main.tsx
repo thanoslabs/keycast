@@ -114,7 +114,30 @@ function Overlay() {
       socket?.close();
     };
   }, []);
+  const demo = new URLSearchParams(window.location.search).get("demo") === "1";
+  const [demoKeys, setDemoKeys] = useState<string[]>([]);
+  const [demoMouse, setDemoMouse] = useState<string[]>([]);
+  useEffect(() => {
+    if (!demo) return;
+    const frames = [
+      { keys: ["Ctrl", "Shift", "S"], mouse: [] as string[] },
+      { keys: ["Space"], mouse: ["MouseLeft"] },
+      { keys: ["A", "W", "D"], mouse: ["MouseRight"] },
+      { keys: ["Enter"], mouse: ["MouseButton4"] }
+    ];
+    let index = 0;
+    const update = () => {
+      const frame = frames[index++ % frames.length];
+      setDemoKeys(frame.keys);
+      setDemoMouse(frame.mouse);
+    };
+    update();
+    const timer = setInterval(update, 1400);
+    return () => clearInterval(timer);
+  }, [demo]);
   const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels)).map(label);
+  const renderedKeys = demo ? demoKeys : keys;
+  const renderedMouse = demo ? demoMouse : pressed;
   const params = new URLSearchParams(window.location.search);
   const profileName = params.get("profile") ?? "default";
   const profile = profileName === "default" ? undefined : settings.profiles?.[profileName];
@@ -124,10 +147,10 @@ function Overlay() {
   const positions = placement ?? defaultPlacement;
   return <main className={`overlay animation-${profile?.animation ?? "pop"} ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
     <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
-      <KeyboardLayout layout={layout} pressed={keys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} />
+      <KeyboardLayout layout={layout} pressed={renderedKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} />
     </section>
-    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={pressed} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
-    {!connected && <div className="connection" role="status">Waiting for Keycast…</div>}
+    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={renderedMouse} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
+    {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
 function App() {
