@@ -20,6 +20,7 @@ type Profile struct {
 	Animation  string               `json:"animation,omitempty"`
 	CustomCSS  string               `json:"customCss,omitempty"`
 	HiddenKeys []string             `json:"hiddenKeys,omitempty"`
+	VisibleKeys []string             `json:"visibleKeys,omitempty"`
 }
 
 type KeyOffset struct {
@@ -62,6 +63,16 @@ func (p Profile) Validate() error {
 	if strings.Contains(lowerCSS, "@import") || strings.Contains(lowerCSS, "url(") || strings.Contains(lowerCSS, "expression(") || strings.Contains(lowerCSS, "</style") {
 		return errors.New("custom CSS cannot load external resources or contain style tags")
 	}
+	if len(p.VisibleKeys) > 128 {
+		return errors.New("too many visible keys")
+	}
+	visible := make(map[string]bool, len(p.VisibleKeys))
+	for _, key := range p.VisibleKeys {
+		if len(key) == 0 || len(key) > 32 || visible[key] {
+			return fmt.Errorf("invalid or duplicate visible key %q", key)
+		}
+		visible[key] = true
+	}
 	if len(p.HiddenKeys) > 64 {
 		return errors.New("too many hidden key labels")
 	}
@@ -75,8 +86,8 @@ func (p Profile) Validate() error {
 	if p.Animation != "" && p.Animation != "pop" && p.Animation != "glow" && p.Animation != "none" {
 		return errors.New("animation must be pop, glow, or none")
 	}
-	if p.Layout != "compact" && p.Layout != "full" {
-		return errors.New("layout must be compact or full")
+	if p.Layout != "compact" && p.Layout != "full" && p.Layout != "custom" {
+		return errors.New("layout must be compact, full or custom")
 	}
 	if p.Placement != nil {
 		if err := p.Placement.Validate(); err != nil {
