@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
+import { VisualKeyEditor } from "./visual-key-editor";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
 export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
@@ -109,7 +110,10 @@ export function SettingsDashboard() {
       <label>Scale: {appearance.scale}% <input type="range" min="50" max="200" value={appearance.scale} onChange={event => edit({ scale: Number(event.target.value) })} /></label>
       <label><input type="checkbox" checked={appearance.showMouse} onChange={event => edit({ showMouse: event.target.checked })} /> Show mouse</label>
       {selected !== "default" && layout === "full" && <div className="key-customization">
-        <h2>Individual key dimensions</h2>
+        <h2>Visual keyboard editor</h2>
+        <VisualKeyEditor selected={selectedKey} onSelect={setSelectedKey}
+          widths={profile?.keyWidths} heights={profile?.keyHeights} offsets={profile?.keyOffsets}
+          onOffsetsChange={next => edit({ keyOffsets: next })} />
         <label>Key
           <select value={selectedKey} onChange={event => setSelectedKey(event.target.value)}>
             {[...new Set(rows.flat())].map(key => <option key={key} value={key}>{key}</option>)}
