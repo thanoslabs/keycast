@@ -45,7 +45,11 @@ func main() {
 			}
 		}()
 	}
+	assetsDir := ""
+	if exe, err := os.Executable(); err == nil {
+		assetsDir = filepath.Join(filepath.Dir(exe), "web")
+	}
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("Keycast listening on http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, hub.Routes()))
+	log.Fatal(http.ListenAndServe(addr, hub.RoutesWithAssets(assetsDir)))
 }
