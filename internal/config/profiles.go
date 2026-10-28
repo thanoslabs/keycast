@@ -19,7 +19,7 @@ type Profile struct {
 	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
 	Animation  string               `json:"animation,omitempty"`
 	CustomCSS  string               `json:"customCss,omitempty"`
-	HiddenKeys []string             `json:"hiddenKeys,omitempty"`
+	HiddenKeys  []string             `json:"hiddenKeys,omitempty"`
 	VisibleKeys []string             `json:"visibleKeys,omitempty"`
 }
 
