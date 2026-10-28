@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { parseLayout, type Layout } from "./layouts";
+import { parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type Profile = { placement?: Placement; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
+export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -21,6 +21,7 @@ export function SettingsDashboard() {
   const profile = selected === "default" ? undefined : settings.profiles?.[selected];
   const appearance = profile ?? { ...settings, layout: defaultLayout };
   const layout = profile?.layout ?? defaultLayout;
+  const [selectedKey, setSelectedKey] = useState("Space");
   const placement = profile?.placement ?? defaultPlacement;
   const overlayUrl = `${window.location.origin}/overlay/default?profile=${encodeURIComponent(selected)}${selected === "default" ? `&layout=${layout}` : ""}`;
 
@@ -107,6 +108,24 @@ export function SettingsDashboard() {
       <label>Opacity: {appearance.opacity}% <input type="range" min="20" max="100" value={appearance.opacity} onChange={event => edit({ opacity: Number(event.target.value) })} /></label>
       <label>Scale: {appearance.scale}% <input type="range" min="50" max="200" value={appearance.scale} onChange={event => edit({ scale: Number(event.target.value) })} /></label>
       <label><input type="checkbox" checked={appearance.showMouse} onChange={event => edit({ showMouse: event.target.checked })} /> Show mouse</label>
+      {selected !== "default" && layout === "full" && <div className="key-customization">
+        <h2>Individual key widths</h2>
+        <label>Key
+          <select value={selectedKey} onChange={event => setSelectedKey(event.target.value)}>
+            {[...new Set(rows.flat())].map(key => <option key={key} value={key}>{key}</option>)}
+          </select>
+        </label>
+        <label>Width: {profile?.keyWidths?.[selectedKey] ?? 100}%
+          <input type="range" min={50} max={300} step={5}
+            value={profile?.keyWidths?.[selectedKey] ?? 100}
+            onChange={event => edit({ keyWidths: { ...profile?.keyWidths, [selectedKey]: Number(event.target.value) } })} />
+        </label>
+        <button type="button" onClick={() => {
+          const widths = { ...profile?.keyWidths };
+          delete widths[selectedKey];
+          edit({ keyWidths: widths });
+        }}>Reset selected key</button>
+      </div>}
       {selected !== "default" && <PlacementEditor value={placement} onChange={next => edit({ placement: next })} />}
       <button type="button" onClick={() => void save()}>Save profiles</button>
       <span role="status">{status}</span>
