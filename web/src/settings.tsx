@@ -5,7 +5,7 @@ import { VisualKeyEditor } from "./visual-key-editor";
 import { themePresets, type ThemePreset } from "./themes";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; hiddenKeys?: string[]; layout: Layout };
+export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; customCss?: string; hiddenKeys?: string[]; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -162,6 +162,12 @@ export function SettingsDashboard() {
         <select value={profile?.animation ?? "pop"} onChange={event => edit({ animation: event.target.value as "pop" | "glow" | "none" })}>
           <option value="pop">Pop</option><option value="glow">Glow</option><option value="none">None</option>
         </select>
+      </label>}
+      {selected !== "default" && <label className="custom-css-field">Custom overlay CSS (max 8 KB; overlay page only)
+        <textarea rows={7} maxLength={8192} spellCheck={false}
+          placeholder={".overlay .layout-key.is-pressed { border-radius: 12px; }"}
+          value={profile?.customCss ?? ""}
+          onChange={event => edit({ customCss: event.target.value })} />
       </label>}
       {selected !== "default" && <label className="hidden-key-field">Hide input labels (comma-separated, exact names)
         <input type="text" value={(profile?.hiddenKeys ?? []).join(", ")}

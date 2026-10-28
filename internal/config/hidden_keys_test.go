@@ -15,11 +15,19 @@ func TestHiddenKeysValidation(t *testing.T) {
 
 func TestHiddenKeysStoreIsolation(t *testing.T) {
 	store, err := Open(t.TempDir() + "/settings.json")
-	if err != nil { t.Fatal(err) }
+	if err != nil {
+		t.Fatal(err)
+	}
 	value := Default()
-	value.Profiles = map[string]Profile{"demo": {Accent: "#6d53c5", Opacity: 85, Scale: 100, Layout: "full", HiddenKeys: []string{"Ctrl"}}}
-	if err := store.Save(value); err != nil { t.Fatal(err) }
+	value.Profiles = map[string]Profile{
+		"demo": {Accent: "#6d53c5", Opacity: 85, Scale: 100, Layout: "full", HiddenKeys: []string{"Ctrl"}},
+	}
+	if err := store.Save(value); err != nil {
+		t.Fatal(err)
+	}
 	copy := store.Get()
 	copy.Profiles["demo"].HiddenKeys[0] = "Alt"
-	if store.Get().Profiles["demo"].HiddenKeys[0] != "Ctrl" { t.Fatal("store leaked hidden key slice") }
+	if store.Get().Profiles["demo"].HiddenKeys[0] != "Ctrl" {
+		t.Fatal("store leaked hidden key slice")
+	}
 }

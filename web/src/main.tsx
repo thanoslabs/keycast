@@ -149,10 +149,11 @@ function Overlay() {
   const placement = profile?.placement;
   const positions = placement ?? defaultPlacement;
   return <main className={`overlay animation-${profile?.animation ?? "pop"} ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
+    {profile?.customCss && <style>{profile.customCss}</style>}
     <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} />
     </section>
-    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} /></div> : <Mouse pressed={visibleMouse} wheel={wheel} />)}
+    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
     {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
