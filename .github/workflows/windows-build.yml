@@ -15,3 +15,42 @@ jobs:
           go-version-file: go.mod
       - name: Cross-compile Windows amd64
         run: GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/keycast.exe ./cmd/keycast
+
+  portable-package-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build and inspect portable archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          (cd web && npm install --no-audit --no-fund && npm run build)
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -o /tmp/keycast.exe ./cmd/keycast
+          mkdir -p /tmp/keycast-package/web
+          cp /tmp/keycast.exe /tmp/keycast-package/keycast.exe
+          cp -R web/dist/. /tmp/keycast-package/web/
+          cp packaging/windows/startup.ps1 packaging/windows/tray.ps1 packaging/windows/tray.vbs /tmp/keycast-package/
+          (cd /tmp/keycast-package && zip -qr /tmp/keycast-smoke.zip .)
+          for entry in keycast.exe web/index.html startup.ps1 tray.ps1 tray.vbs; do
+            unzip -Z1 /tmp/keycast-smoke.zip | grep -Fxq "$entry" || { echo "::error::Missing $entry"; exit 1; }
+          done
+      - name: Smoke test local server and overlay routes
+        shell: bash
+        run: |
+          set -euo pipefail
+          go build -o /tmp/keycast-smoke ./cmd/keycast
+          /tmp/keycast-smoke -simulate -port 19867 &
+          pid=$!
+          trap 'kill "$pid" 2>/dev/null || true' EXIT
+          for i in $(seq 1 40); do
+            if curl -fsS http://127.0.0.1:19867/api/v1/health > /tmp/keycast-health.json; then break; fi
+            sleep 0.25
+          done
+          grep -Fq '"status":"ok"' /tmp/keycast-health.json
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:19867/ws/v1/overlay/default)" = "426"
