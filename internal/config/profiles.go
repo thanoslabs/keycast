@@ -7,19 +7,19 @@ import (
 
 // Profile stores the appearance and layout of a named OBS browser source.
 type Profile struct {
-	Accent    string `json:"accent"`
-	Opacity   int    `json:"opacity"`
-	Scale     int    `json:"scale"`
-	ShowMouse bool   `json:"showMouse"`
-	Layout    string `json:"layout"`
+	Accent    string     `json:"accent"`
+	Opacity   int        `json:"opacity"`
+	Scale     int        `json:"scale"`
+	ShowMouse bool       `json:"showMouse"`
+	Layout    string     `json:"layout"`
 	Placement *Placement `json:"placement,omitempty"`
 }
 
 type Placement struct {
 	KeyboardX int `json:"keyboardX"`
 	KeyboardY int `json:"keyboardY"`
-	MouseX int `json:"mouseX"`
-	MouseY int `json:"mouseY"`
+	MouseX    int `json:"mouseX"`
+	MouseY    int `json:"mouseY"`
 }
 
 func (p Placement) Validate() error {
