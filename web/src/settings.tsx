@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 import { VisualKeyEditor } from "./visual-key-editor";
+import { themePresets, type ThemePreset } from "./themes";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
 export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
@@ -103,6 +104,15 @@ export function SettingsDashboard() {
       <label>Keyboard layout
         <select value={layout} onChange={event => edit({ layout: parseLayout(event.target.value) })}>
           <option value="compact">Compact</option><option value="full">Full keyboard</option>
+        </select>
+      </label>
+      <label>Theme preset
+        <select defaultValue="" onChange={event => {
+          const preset = themePresets[event.target.value as ThemePreset];
+          if (preset) edit({ accent: preset.accent, opacity: preset.opacity });
+        }}>
+          <option value="" disabled>Choose a preset</option>
+          {Object.entries(themePresets).map(([id, theme]) => <option key={id} value={id}>{theme.label}</option>)}
         </select>
       </label>
       <label>Accent color <input type="color" value={appearance.accent} onChange={event => edit({ accent: event.target.value })} /></label>
