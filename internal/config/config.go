@@ -9,11 +9,11 @@ import (
 )
 
 type Settings struct {
-	Version int `json:"version"`
-	Accent string `json:"accent"`
-	Opacity int `json:"opacity"`
-	Scale int `json:"scale"`
-	ShowMouse bool `json:"showMouse"`
+	Version   int    `json:"version"`
+	Accent    string `json:"accent"`
+	Opacity   int    `json:"opacity"`
+	Scale     int    `json:"scale"`
+	ShowMouse bool   `json:"showMouse"`
 }
 
 func Default() Settings {
@@ -39,8 +39,8 @@ func (s Settings) Validate() error {
 }
 
 type Store struct {
-	mu sync.RWMutex
-	path string
+	mu    sync.RWMutex
+	path  string
 	value Settings
 }
 
