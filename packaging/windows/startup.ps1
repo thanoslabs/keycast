@@ -6,7 +6,7 @@ param(
 $ErrorActionPreference = "Stop"
 $startup = [Environment]::GetFolderPath("Startup")
 $shortcutPath = Join-Path $startup "Keycast.lnk"
-$exePath = Join-Path $PSScriptRoot "keycast.exe"
+$launcherPath = Join-Path $PSScriptRoot "tray.vbs"
 
 if ($Action -eq "Remove") {
     if (Test-Path -LiteralPath $shortcutPath) {
@@ -16,13 +16,14 @@ if ($Action -eq "Remove") {
     exit 0
 }
 
-if (-not (Test-Path -LiteralPath $exePath)) {
-    throw "keycast.exe not found beside this script. Extract the complete release ZIP first."
+if (-not (Test-Path -LiteralPath $launcherPath)) {
+    throw "tray.vbs not found beside this script. Extract the complete release ZIP first."
 }
 
 $shell = New-Object -ComObject WScript.Shell
 $shortcut = $shell.CreateShortcut($shortcutPath)
-$shortcut.TargetPath = $exePath
+$shortcut.TargetPath = Join-Path $env:SystemRoot "System32\\wscript.exe"
+$shortcut.Arguments = '"' + $launcherPath + '"'
 $shortcut.WorkingDirectory = $PSScriptRoot
 $shortcut.Description = "Start Keycast at Windows sign-in"
 $shortcut.WindowStyle = 7
