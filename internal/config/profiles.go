@@ -17,6 +17,7 @@ type Profile struct {
 	KeyHeights map[string]int       `json:"keyHeights,omitempty"`
 	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
 	Animation  string               `json:"animation,omitempty"`
+	HiddenKeys []string             `json:"hiddenKeys,omitempty"`
 }
 
 type KeyOffset struct {
@@ -51,6 +52,16 @@ func (p Profile) Validate() error {
 	s := Settings{Version: 1, Accent: p.Accent, Opacity: p.Opacity, Scale: p.Scale, ShowMouse: p.ShowMouse}
 	if err := s.validateAppearance(); err != nil {
 		return err
+	}
+	if len(p.HiddenKeys) > 64 {
+		return errors.New("too many hidden key labels")
+	}
+	seenKeys := make(map[string]bool, len(p.HiddenKeys))
+	for _, key := range p.HiddenKeys {
+		if len(key) == 0 || len(key) > 32 || seenKeys[key] {
+			return fmt.Errorf("invalid or duplicate hidden key %q", key)
+		}
+		seenKeys[key] = true
 	}
 	if p.Animation != "" && p.Animation != "pop" && p.Animation != "glow" && p.Animation != "none" {
 		return errors.New("animation must be pop, glow, or none")
