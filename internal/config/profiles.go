@@ -13,7 +13,8 @@ type Profile struct {
 	ShowMouse bool           `json:"showMouse"`
 	Layout    string         `json:"layout"`
 	Placement *Placement     `json:"placement,omitempty"`
-	KeyWidths map[string]int `json:"keyWidths,omitempty"`
+	KeyWidths  map[string]int `json:"keyWidths,omitempty"`
+	KeyHeights map[string]int `json:"keyHeights,omitempty"`
 }
 
 type Placement struct {
@@ -61,6 +62,17 @@ func (p Profile) Validate() error {
 		}
 		if width < 50 || width > 300 {
 			return fmt.Errorf("key %q width must be 50 to 300 percent", key)
+		}
+	}
+	if len(p.KeyHeights) > 128 {
+		return errors.New("too many key height overrides")
+	}
+	for key, height := range p.KeyHeights {
+		if len(key) == 0 || len(key) > 32 {
+			return fmt.Errorf("invalid key label %q", key)
+		}
+		if height < 50 || height > 300 {
+			return fmt.Errorf("key %q height must be 50 to 300 percent", key)
 		}
 	}
 	return nil
