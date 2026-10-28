@@ -81,6 +81,13 @@ func (s *Store) Get() Settings {
 				placement := *profile.Placement
 				profile.Placement = &placement
 			}
+			if profile.KeyWidths != nil {
+				widths := make(map[string]int, len(profile.KeyWidths))
+				for key, width := range profile.KeyWidths {
+					widths[key] = width
+				}
+				profile.KeyWidths = widths
+			}
 			value.Profiles[name] = profile
 		}
 	}
@@ -126,6 +133,13 @@ func (s *Store) Save(value Settings) error {
 			if profile.Placement != nil {
 				placement := *profile.Placement
 				profile.Placement = &placement
+			}
+			if profile.KeyWidths != nil {
+				widths := make(map[string]int, len(profile.KeyWidths))
+				for key, width := range profile.KeyWidths {
+					widths[key] = width
+				}
+				profile.KeyWidths = widths
 			}
 			s.value.Profiles[name] = profile
 		}
