@@ -78,10 +78,10 @@ func (s *Store) Get() Settings {
 		value.Profiles = make(map[string]Profile, len(s.value.Profiles))
 		for name, profile := range s.value.Profiles {
 			if profile.Placement != nil {
-			placement := *profile.Placement
-			profile.Placement = &placement
-		}
-		value.Profiles[name] = profile
+				placement := *profile.Placement
+				profile.Placement = &placement
+			}
+			value.Profiles[name] = profile
 		}
 	}
 	return value
