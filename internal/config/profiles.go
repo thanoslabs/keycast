@@ -19,6 +19,7 @@ type Profile struct {
 	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
 	Animation  string               `json:"animation,omitempty"`
 	CustomCSS  string               `json:"customCss,omitempty"`
+	HiddenKeys []string             `json:"hiddenKeys,omitempty"`
 }
 
 type KeyOffset struct {
@@ -60,6 +61,16 @@ func (p Profile) Validate() error {
 	lowerCSS := strings.ToLower(p.CustomCSS)
 	if strings.Contains(lowerCSS, "@import") || strings.Contains(lowerCSS, "url(") || strings.Contains(lowerCSS, "expression(") || strings.Contains(lowerCSS, "</style") {
 		return errors.New("custom CSS cannot load external resources or contain style tags")
+	}
+	if len(p.HiddenKeys) > 64 {
+		return errors.New("too many hidden key labels")
+	}
+	seenKeys := make(map[string]bool, len(p.HiddenKeys))
+	for _, key := range p.HiddenKeys {
+		if len(key) == 0 || len(key) > 32 || seenKeys[key] {
+			return fmt.Errorf("invalid or duplicate hidden key %q", key)
+		}
+		seenKeys[key] = true
 	}
 	if p.Animation != "" && p.Animation != "pop" && p.Animation != "glow" && p.Animation != "none" {
 		return errors.New("animation must be pop, glow, or none")
