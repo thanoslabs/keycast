@@ -1,11 +1,13 @@
 import type { CSSProperties } from "react";
 
-export type Layout = "compact" | "full";
-export const layoutOptions: Layout[] = ["compact", "full"];
+export type Layout = "compact" | "full" | "custom";
+export const layoutOptions: Layout[] = ["compact", "full", "custom"];
 
 export function parseLayout(value: string | null): Layout {
-  return value === "full" ? "full" : "compact";
+  return value === "full" || value === "custom" ? value : "compact";
 }
+
+export const fpsKeys = ["1", "2", "3", "4", "5", "W", "A", "S", "D", "Shift", "Ctrl", "Space"];
 
 export const rows = [
   ["Esc", "F1", "F2", "F3", "F4", "F5", "F6", "F7", "F8", "F9", "F10", "F11", "F12"],
@@ -21,7 +23,7 @@ const aliases: Record<string, string> = {
   "Left Win": "Win", "Right Shift": "Shift"
 };
 
-export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {}, keyOffsets = {} }: { layout: Layout; pressed: string[]; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }> }) {
+export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {}, keyOffsets = {}, visibleKeys = fpsKeys }: { layout: Layout; pressed: string[]; visibleKeys?: string[]; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }> }) {
   if (layout === "compact") {
     return <div className="key-list">
       {pressed.map(key => <span className="key" key={key}>{key}</span>)}
@@ -29,9 +31,10 @@ export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {
     </div>;
   }
   const active = new Set(pressed.map(key => aliases[key] ?? key));
+  const shown = new Set(visibleKeys);
   return <div className="full-keyboard" aria-label="Full keyboard layout">
-    {rows.map((row, index) => <div className="keyboard-row" key={index}>
-      {row.map(key => <span key={key}
+    {rows.map((row, index) => layout === "custom" && !row.some(key => shown.has(key)) ? null : <div className="keyboard-row" key={index}>
+      {row.filter(key => layout !== "custom" || shown.has(key)).map(key => <span key={key}
         className={`layout-key ${active.has(key) ? "is-pressed" : ""}`}
         style={{ "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((keyWidths[key] ?? 100) / 100), minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
       >{key}</span>)}
