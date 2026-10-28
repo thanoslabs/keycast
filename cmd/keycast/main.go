@@ -55,7 +55,9 @@ func main() {
 	log.Printf("Keycast listening on http://%s", addr)
 	listener := &http.Server{Addr: addr, Handler: hub.RoutesWithAssets(assetsDir)}
 	serveErrors := make(chan error, 1)
-	go func() { serveErrors <- listener.ListenAndServe() }()
+	go func() {
+		serveErrors <- listener.ListenAndServe()
+	}()
 	select {
 	case err := <-serveErrors:
 		if err != nil && err != http.ErrServerClosed {
