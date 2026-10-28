@@ -16,6 +16,7 @@ type Profile struct {
 	KeyWidths  map[string]int       `json:"keyWidths,omitempty"`
 	KeyHeights map[string]int       `json:"keyHeights,omitempty"`
 	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
+	Animation  string               `json:"animation,omitempty"`
 }
 
 type KeyOffset struct {
@@ -50,6 +51,9 @@ func (p Profile) Validate() error {
 	s := Settings{Version: 1, Accent: p.Accent, Opacity: p.Opacity, Scale: p.Scale, ShowMouse: p.ShowMouse}
 	if err := s.validateAppearance(); err != nil {
 		return err
+	}
+	if p.Animation != "" && p.Animation != "pop" && p.Animation != "glow" && p.Animation != "none" {
+		return errors.New("animation must be pop, glow, or none")
 	}
 	if p.Layout != "compact" && p.Layout != "full" {
 		return errors.New("layout must be compact or full")

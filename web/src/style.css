@@ -79,3 +79,10 @@ html, body, #root { margin: 0; min-height: 100%; background: transparent; }
 .key-resize-handle { position: absolute; background: #f3e8ff; border: 1px solid #433263; border-radius: 3px; z-index: 2; touch-action: none; }
 .key-resize-handle.width { right: -5px; top: calc(50% - 7px); width: 9px; height: 14px; cursor: ew-resize; }
 .key-resize-handle.height { bottom: -5px; left: calc(50% - 7px); width: 14px; height: 9px; cursor: ns-resize; }
+
+.overlay.animation-none .key, .overlay.animation-none .layout-key { animation: none; transition: none; }
+.overlay.animation-glow .layout-key.is-pressed, .overlay.animation-glow .key { animation: key-glow 650ms ease-in-out infinite alternate; }
+.overlay.animation-pop .layout-key.is-pressed { animation: key-highlight-pop 130ms ease-out; }
+@keyframes key-glow { from { filter: brightness(1); } to { filter: brightness(1.5); } }
+@keyframes key-highlight-pop { from { filter: brightness(1.6); } to { filter: brightness(1); } }
+@media (prefers-reduced-motion: reduce) { .overlay .key, .overlay .layout-key { animation: none !important; } }

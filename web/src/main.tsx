@@ -145,7 +145,7 @@ function Overlay() {
   const layout = profile ? profile.layout : parseLayout(params.get("layout"));
   const placement = profile?.placement;
   const positions = placement ?? defaultPlacement;
-  return <main className={`overlay ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
+  return <main className={`overlay animation-${profile?.animation ?? "pop"} ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
     <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={renderedKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} />
     </section>
