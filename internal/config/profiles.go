@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 // Profile stores the appearance and layout of a named OBS browser source.
@@ -17,6 +18,7 @@ type Profile struct {
 	KeyHeights map[string]int       `json:"keyHeights,omitempty"`
 	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
 	Animation  string               `json:"animation,omitempty"`
+	CustomCSS  string               `json:"customCss,omitempty"`
 }
 
 type KeyOffset struct {
@@ -51,6 +53,13 @@ func (p Profile) Validate() error {
 	s := Settings{Version: 1, Accent: p.Accent, Opacity: p.Opacity, Scale: p.Scale, ShowMouse: p.ShowMouse}
 	if err := s.validateAppearance(); err != nil {
 		return err
+	}
+	if len(p.CustomCSS) > 8192 {
+		return errors.New("custom CSS must be at most 8192 bytes")
+	}
+	lowerCSS := strings.ToLower(p.CustomCSS)
+	if strings.Contains(lowerCSS, "@import") || strings.Contains(lowerCSS, "url(") || strings.Contains(lowerCSS, "expression(") || strings.Contains(lowerCSS, "</style") {
+		return errors.New("custom CSS cannot load external resources or contain style tags")
 	}
 	if p.Animation != "" && p.Animation != "pop" && p.Animation != "glow" && p.Animation != "none" {
 		return errors.New("animation must be pop, glow, or none")
