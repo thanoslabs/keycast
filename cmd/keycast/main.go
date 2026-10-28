@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/thanoslabs/keycast/internal/analog"
 	"github.com/thanoslabs/keycast/internal/capture"
 	"github.com/thanoslabs/keycast/internal/config"
 	"github.com/thanoslabs/keycast/internal/server"
@@ -22,6 +23,7 @@ import (
 func main() {
 	port := flag.Int("port", 9867, "local HTTP port")
 	simulated := flag.Bool("simulate", false, "emit synthetic keyboard input")
+	wooting := flag.Bool("wooting-analog", false, "enable optional Wooting Analog SDK key travel capture")
 	configPath := flag.String("config", "", "settings file path (defaults to OS user config directory)")
 	flag.Parse()
 	path := *configPath
@@ -45,6 +47,11 @@ func main() {
 	hub := server.New(settings)
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if *wooting {
+		go func() {
+			if err := analog.Run(ctx, hub.EmitAnalog); err != nil { log.Printf("Wooting analog unavailable (digital input continues): %v", err) }
+		}()
+	}
 	if *simulated {
 		go simulate.Run(ctx, hub.Emit)
 	} else {
