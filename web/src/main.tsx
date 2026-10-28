@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { SettingsDashboard, defaultSettings, loadSettings, type Settings } from "./settings";
+import { KeyboardLayout, parseLayout } from "./layouts";
 
 type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
@@ -112,13 +113,11 @@ function Overlay() {
       socket?.close();
     };
   }, []);
-  const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels));
+  const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels)).map(label);
+  const layout = parseLayout(new URLSearchParams(window.location.search).get("layout"));
   return <main className="overlay" aria-label="Live Keycast input overlay" style={{ transform: `scale(${settings.scale / 100})`, transformOrigin: "top left", opacity: settings.opacity / 100, ["--accent" as string]: settings.accent }}>
-    <section className="keyboard-panel" aria-label="Pressed keyboard keys">
-      <div className="key-list">
-        {keys.map(code => <span className="key" key={code}>{label(code)}</span>)}
-        {keys.length === 0 && <span className="empty-keys" aria-hidden="true">Keyboard</span>}
-      </div>
+    <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} aria-label="Pressed keyboard keys">
+      <KeyboardLayout layout={layout} pressed={keys} />
     </section>
     {settings.showMouse && <Mouse pressed={pressed} wheel={wheel} />}
     {!connected && <div className="connection" role="status">Waiting for Keycast…</div>}
