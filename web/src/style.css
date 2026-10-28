@@ -1,1 +1,26 @@
-html,body,#root{margin:0;min-height:100%;background:transparent;font-family:system-ui,sans-serif}.dashboard{min-height:100vh;box-sizing:border-box;background:#101827;color:#f6f7fb;padding:48px}.dashboard a{color:#b3a0ff}.overlay{display:flex;gap:8px;padding:20px}.key{color:#fff;background:#292b43;border:2px solid #a68cff;border-radius:9px;padding:12px 18px;box-shadow:0 4px 12px #0004;font-weight:700}
+:root { font-family: system-ui, sans-serif; color-scheme: dark; }
+html, body, #root { margin: 0; min-height: 100%; background: transparent; }
+* { box-sizing: border-box; }
+.dashboard { min-height: 100vh; background: #101827; color: #f6f7fb; padding: 48px; }
+.dashboard a { color: #b3a0ff; }
+.dashboard .hint { opacity: .75; max-width: 42rem; }
+.overlay { display: inline-flex; align-items: end; gap: 14px; padding: 20px; background: transparent; color: #fff; position: relative; }
+.keyboard-panel, .mouse-panel { background: rgba(19, 21, 38, .78); border: 1px solid rgba(180, 158, 255, .45); border-radius: 16px; backdrop-filter: blur(8px); }
+.keyboard-panel { min-width: 260px; min-height: 92px; padding: 16px; display: flex; align-items: center; }
+.key-list { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.key { background: #6d53c5; border: 1px solid #c8b6ff; border-radius: 8px; padding: 10px 14px; font-size: 17px; font-weight: 750; box-shadow: 0 3px 0 #392777; animation: key-in 110ms ease-out; white-space: nowrap; }
+.empty-keys { opacity: .45; font-size: 14px; }
+.mouse-panel { width: 110px; height: 120px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 9px; }
+.mouse-shape { position: relative; width: 48px; height: 72px; border: 2px solid #b7a7ef; border-radius: 24px 24px 20px 20px; overflow: visible; }
+.mouse-button { position: absolute; top: 0; height: 28px; width: 50%; background: rgba(180, 158, 255, .12); }
+.mouse-button.left { left: 0; border-radius: 22px 0 0 0; border-right: 1px solid #b7a7ef; }
+.mouse-button.right { right: 0; border-radius: 0 22px 0 0; }
+.mouse-wheel { position: absolute; top: 10px; left: calc(50% - 3px); width: 6px; height: 13px; border: 1px solid #d3c6ff; border-radius: 4px; background: #3e345e; }
+.mouse-side { position: absolute; left: -6px; width: 5px; height: 11px; border-radius: 3px; background: #6d648a; }
+.side-one { top: 31px; }
+.side-two { top: 45px; }
+.mouse-button.active, .mouse-wheel.active, .mouse-side.active { background: #ad91ff; box-shadow: 0 0 12px #b89dff; }
+.mouse-wheel-status { font-size: 12px; font-weight: 700; min-height: 16px; }
+.connection { position: absolute; left: 20px; bottom: -12px; font-size: 11px; background: rgba(20, 20, 30, .82); padding: 4px 7px; border-radius: 5px; }
+@keyframes key-in { from { transform: translateY(4px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .key { animation: none; } }
