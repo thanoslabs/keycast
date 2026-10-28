@@ -2,6 +2,7 @@ package config
 
 import (
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -21,7 +22,7 @@ func TestSaveAndReload(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if reloaded.Get() != value {
+	if !reflect.DeepEqual(reloaded.Get(), value) {
 		t.Fatalf("reloaded settings differ: %+v", reloaded.Get())
 	}
 }
