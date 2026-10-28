@@ -20,9 +20,9 @@ import (
 const magic = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 type Hub struct {
-	mu      sync.Mutex
-	store   *state.Store
-	clients map[chan []byte]struct{}
+	mu       sync.Mutex
+	store    *state.Store
+	clients  map[chan []byte]struct{}
 	settings *config.Store
 }
 
