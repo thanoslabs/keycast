@@ -39,11 +39,24 @@ func New(settings ...*config.Store) *Hub {
 
 // EmitAnalog broadcasts ephemeral travel samples without persisting input history.
 func (h *Hub) EmitAnalog(samples []analog.Sample) {
-	data, err := json.Marshal(struct { Version int `json:"version"`; Type string `json:"type"`; Data []analog.Sample `json:"data"` }{1, "input.analog", samples})
-	if err != nil { return }
+	data, err := json.Marshal(struct {
+		Version int             `json:"version"`
+		Type    string          `json:"type"`
+		Data    []analog.Sample `json:"data"`
+	}{1, "input.analog", samples})
+	if err != nil {
+		return
+	}
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	for c := range h.clients { select { case c <- data: default: close(c); delete(h.clients, c) } }
+	for c := range h.clients {
+		select {
+		case c <- data:
+		default:
+			close(c)
+			delete(h.clients, c)
+		}
+	}
 }
 
 func (h *Hub) Emit(key events.KeyEvent) {
