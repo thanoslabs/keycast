@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { parseLayout, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 
-export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number };
+export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
 export type Profile = { placement?: Placement; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
