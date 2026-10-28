@@ -3,12 +3,12 @@
 package analog
 
 import (
-"context"
-"fmt"
-"math"
-"syscall"
-"time"
-"unsafe"
+	"context"
+	"fmt"
+	"math"
+	"syscall"
+	"time"
+	"unsafe"
 )
 
 // Sample contains normalized physical key travel, not actuation state.
