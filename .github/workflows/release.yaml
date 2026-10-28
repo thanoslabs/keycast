@@ -87,16 +87,23 @@ jobs:
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "refs/tags/${VERSION}"
 
-      # TODO(project): build and publish release artifacts for this version, e.g.:
-      #   - docker build -t <registry>/<image>:${VERSION} . && docker push <registry>/<image>:${VERSION}
-      #   - go build / goreleaser release
-      #   - npm publish / cargo publish
-      # Then attach files to the release with: gh release upload "${VERSION}" <files...>
-      #
-      # NOTE: pushes/creations made with the default GITHUB_TOKEN do NOT trigger
-      # other workflows (e.g. on: push of tags, on: release). If release events
-      # must fan out to further automation, use a PAT or a GitHub App token
-      # (see actions/create-github-app-token in the Renovate workflow).
+      # Build the binary in this workflow: tags created with GITHUB_TOKEN do not
+      # trigger a separate tag-push workflow.
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Build Windows executable
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
+            -trimpath -ldflags="-s -w" -o dist/keycast-windows-amd64.exe ./cmd/keycast
+          cd dist
+          sha256sum keycast-windows-amd64.exe > SHA256SUMS
 
       - name: Create GitHub release
         env:
@@ -104,5 +111,6 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "${VERSION}" \
+            dist/keycast-windows-amd64.exe dist/SHA256SUMS \
             --title "${VERSION}" \
             --generate-notes
