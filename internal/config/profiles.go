@@ -21,7 +21,7 @@ type Placement struct {
 	MouseX        int `json:"mouseX"`
 	MouseY        int `json:"mouseY"`
 	KeyboardScale int `json:"keyboardScale,omitempty"`
-	MouseScale int `json:"mouseScale,omitempty"`
+	MouseScale    int `json:"mouseScale,omitempty"`
 }
 
 func (p Placement) Validate() error {
