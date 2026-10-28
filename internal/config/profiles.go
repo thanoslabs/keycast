@@ -20,12 +20,19 @@ type Placement struct {
 	KeyboardY int `json:"keyboardY"`
 	MouseX    int `json:"mouseX"`
 	MouseY    int `json:"mouseY"`
+	KeyboardScale int `json:"keyboardScale,omitempty"`
+	MouseScale int `json:"mouseScale,omitempty"`
 }
 
 func (p Placement) Validate() error {
 	for _, value := range []int{p.KeyboardX, p.KeyboardY, p.MouseX, p.MouseY} {
 		if value < 0 || value > 2000 {
 			return errors.New("overlay position must be between 0 and 2000")
+		}
+	}
+	for _, scale := range []int{p.KeyboardScale, p.MouseScale} {
+		if scale != 0 && (scale < 50 || scale > 200) {
+			return errors.New("component scale must be between 50 and 200 percent")
 		}
 	}
 	return nil
