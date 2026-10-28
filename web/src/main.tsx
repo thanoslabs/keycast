@@ -5,7 +5,7 @@ import { SettingsDashboard, defaultSettings, loadSettings, type Settings } from 
 import { KeyboardLayout, parseLayout } from "./layouts";
 import { defaultPlacement } from "./placement";
 
-type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } };
+type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } | { code: string; depth: number }[] };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
 const wheels: Record<string, string> = { WheelUp: "↑", WheelDown: "↓", WheelLeft: "←", WheelRight: "→" };
 const scans: Record<string, string> = {
@@ -47,6 +47,7 @@ function Mouse({ pressed, wheel }: { pressed: string[]; wheel: string | null }) 
 function Overlay() {
   const [pressed, setPressed] = useState<string[]>([]);
   const [wheel, setWheel] = useState<string | null>(null);
+  const [analog, setAnalog] = useState<Record<string, number>>({});
   const [connected, setConnected] = useState(false);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   useEffect(() => {
@@ -71,7 +72,12 @@ function Overlay() {
       socket.onmessage = event => {
         try {
           const message = JSON.parse(event.data) as Message;
-          if (message.version !== 1 || !Number.isSafeInteger(message.sequence)) return;
+          if (message.version !== 1) return;
+          if (message.type === "input.analog" && Array.isArray(message.data)) {
+            setAnalog(previous => { const next = { ...previous }; for (const sample of message.data as {code:string;depth:number}[]) { if (!/^Scan(?:E0)?_[0-9A-F]+$/.test(sample.code) || !Number.isFinite(sample.depth) || sample.depth < 0 || sample.depth > 1) continue; const key = label(sample.code); if (sample.depth === 0) delete next[key]; else next[key] = sample.depth; } return next; });
+            return;
+          }
+          if (!Number.isSafeInteger(message.sequence)) return;
           if (message.type === "state.snapshot") {
             sequence = message.sequence;
             setPressed(Array.isArray(message.pressed) ? message.pressed : []);
@@ -84,7 +90,7 @@ function Overlay() {
             return;
           }
           sequence = message.sequence;
-          const { code, action } = message.data;
+          const { code, action } = message.data as {code:string;action:"down"|"up"};
           if (code in wheels) {
             if (action === "down") {
               setWheel(code);
@@ -100,6 +106,7 @@ function Overlay() {
       socket.onclose = () => {
         setConnected(false);
         setPressed([]);
+        setAnalog({});
         setWheel(null);
         clearTimeout(wheelTimeout);
         if (active) retry = setTimeout(connect, 1000);
@@ -151,7 +158,7 @@ function Overlay() {
   return <main className={`overlay animation-${profile?.animation ?? "pop"} ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
     {profile?.customCss && <style>{profile.customCss}</style>}
     <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
-      <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} />
+      <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} analog={analog} />
     </section>
     {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
     {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
