@@ -1,83 +1,48 @@
-# template
+# Keycast
 
-[![CI](https://github.com/thanoslabs/template-repo/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/thanoslabs/template-repo/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/thanoslabs/template-repo?sort=semver&display_name=tag)](https://github.com/thanoslabs/template-repo/releases/latest)
-[![Docs](https://github.com/thanoslabs/template-repo/actions/workflows/docs.yaml/badge.svg?branch=main)](https://thanoslabs.github.io/template-repo/)
-[![Docs site](https://img.shields.io/badge/docs-GitHub%20Pages-blue?logo=github)](https://thanoslabs.github.io/template-repo/)
-[![Renovate](https://img.shields.io/badge/renovate-enabled-brightgreen?logo=renovatebot)](https://github.com/thanoslabs/template-repo/pulls?q=is%3Apr+author%3Aapp%2Frenovate)
-[![SemVer](https://img.shields.io/badge/semver-2.0.0-blue)](https://semver.org/)
-[![License: MIT](https://img.shields.io/github/license/thanoslabs/template-repo)](LICENSE)
+[![Keycast Build](https://github.com/thanoslabs/keycast/actions/workflows/keycast-build.yml/badge.svg?branch=main)](https://github.com/thanoslabs/keycast/actions/workflows/keycast-build.yml)
+[![Windows Build](https://github.com/thanoslabs/keycast/actions/workflows/windows-build.yml/badge.svg?branch=main)](https://github.com/thanoslabs/keycast/actions/workflows/windows-build.yml)
+[![Latest release](https://img.shields.io/github/v/release/thanoslabs/keycast?sort=semver&display_name=tag)](https://github.com/thanoslabs/keycast/releases/latest)
 
-Template repository for `thanoslabs` projects.
+Keycast is a localhost-only keyboard and mouse input visualizer for OBS. It captures Windows keyboard and mouse events and displays them in a customizable transparent browser-source overlay.
 
-## What's Included
+## Windows quick start
 
-- **Renovate** — automated dependency updates for Docker, Go modules, and GitHub Actions
-- **Releases** — automatic SemVer bumps on merge to `main` via PR labels (`major`/`minor`/`patch`, default `patch`), plus manual dispatch for explicit versions
-- **Branch protection** — `main` requires PRs and review
-- **CODEOWNERS** — `@thanoslabs/reviewers` auto-requested for review
-- **MIT License**
-- **.gitignore** — common exclusions for OS, IDE, build outputs, and secrets
-- **.tool-versions** — single source of truth for language/tool versions (asdf/mise compatible)
-- **Docs** — markdown in `docs/` built into a static site with [nebula-md](https://github.com/thanoslabs/nebula-md) and deployed to GitHub Pages (public repos only)
+1. Download the **Windows amd64 ZIP** from [Releases](https://github.com/thanoslabs/keycast/releases/latest) and extract the entire archive into a permanent folder.
+2. Run `keycast.exe`. If your ZIP contains `tray.vbs`, you can launch through it to get a notification-area icon instead.
+3. Open [http://127.0.0.1:9867/](http://127.0.0.1:9867/) to edit settings and named profiles.
+4. In OBS, add a **Browser** source pointing to `http://127.0.0.1:9867/overlay/default`. Enable transparency in your source's CSS/layout as needed. For a named profile, copy its overlay URL from the dashboard.
+5. Keep Keycast running while streaming or recording.
 
-## Using This Template
+The executable binds to `127.0.0.1` by default. Input events are processed live; raw input history is not saved.
 
-1. Click **Use this template** to create a new repository
-2. Pin your project's language and tool versions in `.tool-versions`
-3. Update `renovate.json` to configure managers and schedules for your project
-4. Enable the new repo in the Renovate GitHub App if using hosted Renovate
-5. Fill in the artifact build/publish TODO stub in `.github/workflows/release.yaml`
-6. For public repos, set **Settings → Pages → Source** to **GitHub Actions** so the docs site can deploy
-7. Replace `thanoslabs/template-repo` in the README badges with your repo's `owner/name` (and drop the docs site badge for private repos)
+## Configuration
 
-## Renovate
+The web dashboard supports keyboard layouts, keyboard/mouse placement and scaling, per-key adjustments, theme presets, animations, input filtering, custom CSS, and named profile import/export. The dashboard includes a simulated input preview.
 
-Dependency updates are managed via Renovate. Configuration is in `renovate.json` and `.github/renovate-config.js`.
+Settings are saved to the operating system's user configuration directory under `Keycast/settings.json` unless overridden with `-config`.
 
-Enabled managers:
-- `asdf` (keeps `.tool-versions` up to date)
-- `docker-compose`
-- `github-actions`
-- `gomod`
+## Run from source
 
-Add or remove managers as needed for your project.
+Requirements: Go 1.23+, Node.js 22+, npm.
 
-## Releases
-
-Releases follow [SemVer](https://semver.org/) with bare `X.Y.Z` tags (no `v` prefix).
-
-- **Automatic**: merging a PR to `main` cuts a release based on its `major`, `minor`, or `patch` label; no label means a `patch` bump.
-- **Manual**: run the **Release** workflow with an explicit `X.Y.Z` version to cut a specific release.
-
-Automation lives in `.github/workflows/release.yaml` (versioning, tag, GitHub release). Building and publishing artifacts (images, binaries) is project-specific — fill in the TODO stub in the workflow.
-
-## Docs
-
-Project documentation lives in `docs/` as Obsidian-flavoured markdown (frontmatter, `[[wikilinks]]`, callouts). On every push to `main` that touches `docs/`, `.github/workflows/docs.yaml` calls the reusable [nebula-md](https://github.com/thanoslabs/nebula-md) workflow to build a static site and deploy it to GitHub Pages.
-
-- **Public repos**: the site is built and deployed to GitHub Pages.
-- **Private repos**: the workflow is skipped — nothing is published.
-
-You can also trigger it manually via **Actions → Docs → Run workflow**.
-
-## Files
-
+```sh
+cd web && npm install && npm run build && cd ..
+go run ./cmd/keycast -simulate
 ```
-.
-├── .github/
-│   ├── CODEOWNERS           # Auto-request review from @thanoslabs/reviewers
-│   ├── renovate-config.js   # Renovate platform config
-│   └── workflows/
-│       ├── docs.yaml        # Build docs/ with nebula-md, deploy to GitHub Pages (public repos)
-│       ├── release.yaml     # Label-driven SemVer release workflow
-│       └── renovate.yaml    # Renovate GitHub Action workflow
-├── docs/                   # Project documentation (markdown → nebula-md site)
-├── .gitignore
-├── .tool-versions          # Pinned language/tool versions (asdf/mise)
-├── CONTRIBUTING.md
-├── LICENSE
-├── README.md
-├── renovate.json           # Renovate settings
-└── SECURITY.md
-```
+
+The portable executable serves built web assets from a `web/` folder next to `keycast.exe`. When running from source, use the Vite development server (`cd web && npm run dev`) for the dashboard. Simulated mode works on non-Windows systems; native Raw Input capture requires Windows.
+
+## Troubleshooting
+
+- **Dashboard doesn't load:** verify Keycast is running and visit `http://127.0.0.1:9867/api/v1/health`.
+- **Another instance is running:** stop the existing process before starting another on port 9867.
+- **OBS overlay is blank:** confirm the browser-source URL and that the web assets were extracted alongside the executable.
+- **No input appears:** check whether native capture started, or use `-simulate` to isolate overlay problems.
+- **Tray icon missing:** use the complete extracted ZIP, not the standalone executable; `tray.vbs` is only available in releases that bundle the tray launcher.
+
+## Development
+
+Run `go test ./...` and `cd web && npm run build`. Pull requests are checked by the Go, frontend, and Windows cross-compilation workflows. Releases use bare SemVer tags.
+
+See the [documentation](docs/) for further setup details.
