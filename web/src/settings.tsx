@@ -102,7 +102,7 @@ export function SettingsDashboard() {
       if (!name) return;
       if (!/^[a-z0-9-]{1,32}$/.test(name) || name === "default" || settings.profiles?.[name] ||
           Object.keys(settings.profiles ?? {}).length >= 32) throw new Error("Invalid, duplicate, or excess profile name");
-      setSettings(current => ({ ...current, profiles: { ...current.profiles, [name]: candidate as Profile } }));
+      setSettings(current => ({ ...current, profiles: { ...current.profiles, [name]: candidate as unknown as Profile } }));
       setSelected(name);
       setStatus("Imported locally. Save profiles to validate and persist.");
     } catch (error) {
