@@ -16,10 +16,10 @@ type Profile struct {
 }
 
 type Placement struct {
-	KeyboardX int `json:"keyboardX"`
-	KeyboardY int `json:"keyboardY"`
-	MouseX    int `json:"mouseX"`
-	MouseY    int `json:"mouseY"`
+	KeyboardX     int `json:"keyboardX"`
+	KeyboardY     int `json:"keyboardY"`
+	MouseX        int `json:"mouseX"`
+	MouseY        int `json:"mouseY"`
 	KeyboardScale int `json:"keyboardScale,omitempty"`
 	MouseScale int `json:"mouseScale,omitempty"`
 }
