@@ -7,12 +7,12 @@ import (
 
 // Profile stores the appearance and layout of a named OBS browser source.
 type Profile struct {
-	Accent    string         `json:"accent"`
-	Opacity   int            `json:"opacity"`
-	Scale     int            `json:"scale"`
-	ShowMouse bool           `json:"showMouse"`
-	Layout    string         `json:"layout"`
-	Placement *Placement     `json:"placement,omitempty"`
+	Accent     string         `json:"accent"`
+	Opacity    int            `json:"opacity"`
+	Scale      int            `json:"scale"`
+	ShowMouse  bool           `json:"showMouse"`
+	Layout     string         `json:"layout"`
+	Placement  *Placement     `json:"placement,omitempty"`
 	KeyWidths  map[string]int `json:"keyWidths,omitempty"`
 	KeyHeights map[string]int `json:"keyHeights,omitempty"`
 }
