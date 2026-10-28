@@ -114,12 +114,16 @@ function Overlay() {
     };
   }, []);
   const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels)).map(label);
-  const layout = parseLayout(new URLSearchParams(window.location.search).get("layout"));
-  return <main className="overlay" aria-label="Live Keycast input overlay" style={{ transform: `scale(${settings.scale / 100})`, transformOrigin: "top left", opacity: settings.opacity / 100, ["--accent" as string]: settings.accent }}>
+  const params = new URLSearchParams(window.location.search);
+  const profileName = params.get("profile") ?? "default";
+  const profile = profileName === "default" ? undefined : settings.profiles?.[profileName];
+  const appearance = profile ?? settings;
+  const layout = profile ? profile.layout : parseLayout(params.get("layout"));
+  return <main className="overlay" aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
     <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={keys} />
     </section>
-    {settings.showMouse && <Mouse pressed={pressed} wheel={wheel} />}
+    {appearance.showMouse && <Mouse pressed={pressed} wheel={wheel} />}
     {!connected && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
