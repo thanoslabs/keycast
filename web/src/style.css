@@ -58,3 +58,7 @@ html, body, #root { margin: 0; min-height: 100%; background: transparent; }
 .placement-coordinates fieldset { display: flex; gap: 12px; border: 1px solid #69718a; border-radius: 8px; }
 .placement-coordinates label { display: flex; gap: 6px; align-items: center; }
 .placement-coordinates input { width: 82px; }
+
+.component-sizing { display: grid; gap: 10px; }
+.component-sizing label { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.component-sizing input[type="range"] { flex: 1; min-width: 130px; }

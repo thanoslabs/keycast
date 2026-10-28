@@ -48,7 +48,7 @@ export function PlacementEditor({ value, onChange }: { value: Placement; onChang
     if (!direction) return;
     event.preventDefault();
     const [axis, sign] = direction;
-    const key = `${target}${axis}` as keyof Placement;
+    const key = `${target}${axis}` as "keyboardX" | "keyboardY" | "mouseX" | "mouseY";
     const amount = event.shiftKey ? 10 : step;
     onChange({ ...value, [key]: adjust(value[key] + sign * amount, axis === "X" ? 760 : 450) });
   }
@@ -92,6 +92,17 @@ export function PlacementEditor({ value, onChange }: { value: Placement; onChang
         })}
       </fieldset>)}
     </div>
-    <button type="button" onClick={() => onChange({ ...defaultPlacement })}>Reset positions</button>
+    <div className="component-sizing">
+      {(["keyboard", "mouse"] as const).map(target => {
+        const key = `${target}Scale` as "keyboardScale" | "mouseScale";
+        const scale = value[key] || 100;
+        return <label key={target}>{target === "keyboard" ? "Keyboard" : "Mouse"} size: {scale}%
+          <input type="range" min={50} max={200} step={5} value={scale}
+            onChange={event => onChange({ ...value, [key]: Number(event.target.value) })} />
+          <button type="button" onClick={() => onChange({ ...value, [key]: 100 })}>100%</button>
+        </label>;
+      })}
+    </div>
+    <button type="button" onClick={() => onChange({ ...defaultPlacement })}>Reset positions and sizes</button>
   </div>;
 }
