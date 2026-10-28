@@ -78,6 +78,7 @@ func (s *Store) Get() Settings {
 		value.Profiles = make(map[string]Profile, len(s.value.Profiles))
 		for name, profile := range s.value.Profiles {
 			profile.HiddenKeys = append([]string(nil), profile.HiddenKeys...)
+			profile.VisibleKeys = append([]string(nil), profile.VisibleKeys...)
 			if profile.Placement != nil {
 				placement := *profile.Placement
 				profile.Placement = &placement
@@ -146,6 +147,7 @@ func (s *Store) Save(value Settings) error {
 		s.value.Profiles = make(map[string]Profile, len(value.Profiles))
 		for name, profile := range value.Profiles {
 			profile.HiddenKeys = append([]string(nil), profile.HiddenKeys...)
+			profile.VisibleKeys = append([]string(nil), profile.VisibleKeys...)
 			if profile.Placement != nil {
 				placement := *profile.Placement
 				profile.Placement = &placement

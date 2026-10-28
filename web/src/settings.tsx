@@ -1,11 +1,11 @@
 import { useEffect, useState, type ChangeEvent } from "react";
-import { parseLayout, rows, type Layout } from "./layouts";
+import { fpsKeys, parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 import { VisualKeyEditor } from "./visual-key-editor";
 import { themePresets, type ThemePreset } from "./themes";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; customCss?: string; hiddenKeys?: string[]; layout: Layout };
+export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; customCss?: string; hiddenKeys?: string[]; visibleKeys?: string[]; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -99,7 +99,7 @@ export function SettingsDashboard() {
           typeof candidate.opacity !== "number" || candidate.opacity < 20 || candidate.opacity > 100 ||
           typeof candidate.scale !== "number" || candidate.scale < 50 || candidate.scale > 200 ||
           typeof candidate.showMouse !== "boolean" ||
-          (candidate.layout !== "compact" && candidate.layout !== "full")) throw new Error("Invalid profile appearance");
+          (candidate.layout !== "compact" && candidate.layout !== "full" && candidate.layout !== "custom")) throw new Error("Invalid profile appearance");
       const name = window.prompt("Name for imported profile (lowercase letters, digits, hyphens):");
       if (!name) return;
       if (!/^[a-z0-9-]{1,32}$/.test(name) || name === "default" || settings.profiles?.[name] ||
@@ -146,7 +146,7 @@ export function SettingsDashboard() {
       </div>
       <label>Keyboard layout
         <select value={layout} onChange={event => edit({ layout: parseLayout(event.target.value) })}>
-          <option value="compact">Compact</option><option value="full">Full keyboard</option>
+          <option value="compact">Compact</option><option value="full">Full keyboard</option><option value="custom">Custom / FPS</option>
         </select>
       </label>
       <label>Theme preset
@@ -178,7 +178,8 @@ export function SettingsDashboard() {
       <label>Opacity: {appearance.opacity}% <input type="range" min="20" max="100" value={appearance.opacity} onChange={event => edit({ opacity: Number(event.target.value) })} /></label>
       <label>Scale: {appearance.scale}% <input type="range" min="50" max="200" value={appearance.scale} onChange={event => edit({ scale: Number(event.target.value) })} /></label>
       <label><input type="checkbox" checked={appearance.showMouse} onChange={event => edit({ showMouse: event.target.checked })} /> Show mouse</label>
-      {selected !== "default" && layout === "full" && <div className="key-customization">
+      {selected !== "default" && layout === "custom" && <fieldset className="key-customization"><legend>Visible keys</legend><div className="visible-key-grid">{[...new Set(rows.flat())].map(key => <label key={key}><input type="checkbox" checked={(profile?.visibleKeys ?? fpsKeys).includes(key)} onChange={event => { const current = profile?.visibleKeys ?? fpsKeys; edit({ visibleKeys: event.target.checked ? [...current, key] : current.filter(value => value !== key) }); }} />{key}</label>)}</div><button type="button" onClick={() => edit({ visibleKeys: [...fpsKeys] })}>Reset to FPS preset</button></fieldset>}
+      {selected !== "default" && (layout === "full" || layout === "custom") && <div className="key-customization">
         <h2>Visual keyboard editor</h2>
         <VisualKeyEditor selected={selectedKey} onSelect={setSelectedKey}
           widths={profile?.keyWidths} heights={profile?.keyHeights} offsets={profile?.keyOffsets}
