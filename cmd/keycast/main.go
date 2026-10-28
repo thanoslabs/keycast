@@ -49,7 +49,9 @@ func main() {
 	defer stop()
 	if *wooting {
 		go func() {
-			if err := analog.Run(ctx, hub.EmitAnalog); err != nil { log.Printf("Wooting analog unavailable (digital input continues): %v", err) }
+			if err := analog.Run(ctx, hub.EmitAnalog); err != nil {
+				log.Printf("Wooting analog unavailable (digital input continues): %v", err)
+			}
 		}()
 	}
 	if *simulated {
