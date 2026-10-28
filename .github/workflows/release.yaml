@@ -117,7 +117,8 @@ jobs:
           cp dist/keycast-windows-amd64.exe dist/package/keycast.exe
           cp -R web/dist/. dist/package/web/
           cp packaging/windows/startup.ps1 dist/package/startup.ps1
-          (cd dist/package && zip -qr ../keycast-windows-amd64.zip keycast.exe web startup.ps1)
+          cp packaging/windows/tray.ps1 packaging/windows/tray.vbs dist/package/
+          (cd dist/package && zip -qr ../keycast-windows-amd64.zip keycast.exe web startup.ps1 tray.ps1 tray.vbs)
           cd dist
           sha256sum keycast-windows-amd64.exe keycast-windows-amd64.zip > SHA256SUMS
 
