@@ -8,6 +8,8 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"path/filepath"
 	"strings"
 	"sync"
 	"time"
@@ -53,6 +55,12 @@ func (h *Hub) Emit(key events.KeyEvent) {
 }
 
 func (h *Hub) Routes() http.Handler {
+	return h.RoutesWithAssets("")
+}
+
+// RoutesWithAssets serves the dashboard and OBS overlay from a packaged web build.
+// An empty path keeps development/API-only behavior unchanged.
+func (h *Hub) RoutesWithAssets(assetsDir string) http.Handler {
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /api/v1/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -61,6 +69,18 @@ func (h *Hub) Routes() http.Handler {
 	mux.HandleFunc("GET /ws/v1/overlay/default", h.overlay)
 	if h.settings != nil {
 		settingsRoutes(mux, h.settings)
+	}
+	if assetsDir != "" {
+		if info, err := os.Stat(filepath.Join(assetsDir, "index.html")); err == nil && !info.IsDir() {
+			static := http.FileServer(http.Dir(assetsDir))
+			mux.HandleFunc("GET /", func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/" || r.URL.Path == "/overlay/default" {
+					http.ServeFile(w, r, filepath.Join(assetsDir, "index.html"))
+					return
+				}
+				static.ServeHTTP(w, r)
+			})
+		}
 	}
 	return mux
 }
