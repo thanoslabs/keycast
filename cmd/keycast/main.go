@@ -8,9 +8,9 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
-	"path/filepath"
 
 	"github.com/thanoslabs/keycast/internal/capture"
 	"github.com/thanoslabs/keycast/internal/config"
