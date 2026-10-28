@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { SettingsDashboard, defaultSettings, loadSettings, type Settings } from "./settings";
 import { KeyboardLayout, parseLayout } from "./layouts";
+import { defaultPlacement } from "./placement";
 
 type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
@@ -119,11 +120,13 @@ function Overlay() {
   const profile = profileName === "default" ? undefined : settings.profiles?.[profileName];
   const appearance = profile ?? settings;
   const layout = profile ? profile.layout : parseLayout(params.get("layout"));
-  return <main className="overlay" aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
-    <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} aria-label="Pressed keyboard keys">
+  const placement = profile?.placement;
+  const positions = placement ?? defaultPlacement;
+  return <main className={`overlay ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
+    <section className={`keyboard-panel ${layout === "full" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={keys} />
     </section>
-    {appearance.showMouse && <Mouse pressed={pressed} wheel={wheel} />}
+    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY }}><Mouse pressed={pressed} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
     {!connected && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }

@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import { parseLayout, type Layout } from "./layouts";
+import { PlacementEditor, defaultPlacement } from "./placement";
 
-export type Profile = { accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
+export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number };
+export type Profile = { placement?: Placement; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -19,6 +21,7 @@ export function SettingsDashboard() {
   const profile = selected === "default" ? undefined : settings.profiles?.[selected];
   const appearance = profile ?? { ...settings, layout: defaultLayout };
   const layout = profile?.layout ?? defaultLayout;
+  const placement = profile?.placement ?? defaultPlacement;
   const overlayUrl = `${window.location.origin}/overlay/default?profile=${encodeURIComponent(selected)}${selected === "default" ? `&layout=${layout}` : ""}`;
 
   useEffect(() => {
@@ -104,6 +107,7 @@ export function SettingsDashboard() {
       <label>Opacity: {appearance.opacity}% <input type="range" min="20" max="100" value={appearance.opacity} onChange={event => edit({ opacity: Number(event.target.value) })} /></label>
       <label>Scale: {appearance.scale}% <input type="range" min="50" max="200" value={appearance.scale} onChange={event => edit({ scale: Number(event.target.value) })} /></label>
       <label><input type="checkbox" checked={appearance.showMouse} onChange={event => edit({ showMouse: event.target.checked })} /> Show mouse</label>
+      {selected !== "default" && <PlacementEditor value={placement} onChange={next => edit({ placement: next })} />}
       <button type="button" onClick={() => void save()}>Save profiles</button>
       <span role="status">{status}</span>
     </div>

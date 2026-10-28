@@ -77,6 +77,10 @@ func (s *Store) Get() Settings {
 	if value.Profiles != nil {
 		value.Profiles = make(map[string]Profile, len(s.value.Profiles))
 		for name, profile := range s.value.Profiles {
+			if profile.Placement != nil {
+				placement := *profile.Placement
+				profile.Placement = &placement
+			}
 			value.Profiles[name] = profile
 		}
 	}
@@ -116,5 +120,15 @@ func (s *Store) Save(value Settings) error {
 		return err
 	}
 	s.value = value
+	if value.Profiles != nil {
+		s.value.Profiles = make(map[string]Profile, len(value.Profiles))
+		for name, profile := range value.Profiles {
+			if profile.Placement != nil {
+				placement := *profile.Placement
+				profile.Placement = &placement
+			}
+			s.value.Profiles[name] = profile
+		}
+	}
 	return nil
 }
