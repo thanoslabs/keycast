@@ -4,7 +4,7 @@ import { PlacementEditor, defaultPlacement } from "./placement";
 import { VisualKeyEditor } from "./visual-key-editor";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
+export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -105,6 +105,11 @@ export function SettingsDashboard() {
           <option value="compact">Compact</option><option value="full">Full keyboard</option>
         </select>
       </label>
+      {selected !== "default" && <label>Key animation
+        <select value={profile?.animation ?? "pop"} onChange={event => edit({ animation: event.target.value as "pop" | "glow" | "none" })}>
+          <option value="pop">Pop</option><option value="glow">Glow</option><option value="none">None</option>
+        </select>
+      </label>}
       <label>Accent color <input type="color" value={appearance.accent} onChange={event => edit({ accent: event.target.value })} /></label>
       <label>Opacity: {appearance.opacity}% <input type="range" min="20" max="100" value={appearance.opacity} onChange={event => edit({ opacity: Number(event.target.value) })} /></label>
       <label>Scale: {appearance.scale}% <input type="range" min="50" max="200" value={appearance.scale} onChange={event => edit({ scale: Number(event.target.value) })} /></label>
