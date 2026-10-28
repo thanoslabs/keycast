@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thanoslabs/keycast/internal/config"
 	"github.com/thanoslabs/keycast/internal/events"
 	"github.com/thanoslabs/keycast/internal/state"
 )
@@ -22,10 +23,13 @@ type Hub struct {
 	mu      sync.Mutex
 	store   *state.Store
 	clients map[chan []byte]struct{}
+	settings *config.Store
 }
 
-func New() *Hub {
-	return &Hub{store: state.New(), clients: make(map[chan []byte]struct{})}
+func New(settings ...*config.Store) *Hub {
+	h := &Hub{store: state.New(), clients: make(map[chan []byte]struct{})}
+	if len(settings) > 0 { h.settings = settings[0] }
+	return h
 }
 
 func (h *Hub) Emit(key events.KeyEvent) {
@@ -53,6 +57,7 @@ func (h *Hub) Routes() http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	mux.HandleFunc("GET /ws/v1/overlay/default", h.overlay)
+	if h.settings != nil { settingsRoutes(mux, h.settings) }
 	return mux
 }
 
