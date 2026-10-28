@@ -113,7 +113,9 @@ export function SettingsDashboard() {
         <h2>Visual keyboard editor</h2>
         <VisualKeyEditor selected={selectedKey} onSelect={setSelectedKey}
           widths={profile?.keyWidths} heights={profile?.keyHeights} offsets={profile?.keyOffsets}
-          onOffsetsChange={next => edit({ keyOffsets: next })} />
+          onOffsetsChange={next => edit({ keyOffsets: next })}
+          onWidthsChange={next => edit({ keyWidths: next })}
+          onHeightsChange={next => edit({ keyHeights: next })} />
         <label>Key
           <select value={selectedKey} onChange={event => setSelectedKey(event.target.value)}>
             {[...new Set(rows.flat())].map(key => <option key={key} value={key}>{key}</option>)}
@@ -150,6 +152,15 @@ export function SettingsDashboard() {
             edit({ keyOffsets: offsets });
           }}>Reset position</button>
         </fieldset>
+        <button type="button" onClick={() => {
+          const offsets = { ...profile?.keyOffsets };
+          const widths = { ...profile?.keyWidths };
+          const heights = { ...profile?.keyHeights };
+          delete offsets[selectedKey];
+          delete widths[selectedKey];
+          delete heights[selectedKey];
+          edit({ keyOffsets: offsets, keyWidths: widths, keyHeights: heights });
+        }}>Reset all selected key customizations</button>
         <button type="button" onClick={() => {
           const heights = { ...profile?.keyHeights };
           delete heights[selectedKey];

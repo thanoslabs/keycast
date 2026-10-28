@@ -70,3 +70,12 @@ html, body, #root { margin: 0; min-height: 100%; background: transparent; }
 .settings-form .visual-key.selected { border: 2px solid #e6d9ff; background: #6d53c5; }
 .settings-form .visual-key:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
 .key-customization { display: grid; gap: 12px; }
+
+.visual-editor-options { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.visual-editor-options label { display: inline-flex; gap: 5px; align-items: center; font-size: 12px; }
+.visual-editor-options select { background: #171d2b; color: #fff; border: 1px solid #69718a; border-radius: 5px; }
+.settings-form .visual-key { position: relative; }
+.settings-form .visual-key.overlapping { border-color: #ff9c6a; box-shadow: 0 0 0 2px #ff9c6a; }
+.key-resize-handle { position: absolute; background: #f3e8ff; border: 1px solid #433263; border-radius: 3px; z-index: 2; touch-action: none; }
+.key-resize-handle.width { right: -5px; top: calc(50% - 7px); width: 9px; height: 14px; cursor: ew-resize; }
+.key-resize-handle.height { bottom: -5px; left: calc(50% - 7px); width: 14px; height: 9px; cursor: ns-resize; }
