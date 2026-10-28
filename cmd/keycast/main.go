@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net"
+	"errors"
 	"os"
 	"os/signal"
 	"path/filepath"
@@ -29,6 +31,16 @@ func main() {
 		}
 		path = filepath.Join(dir, "Keycast", "settings.json")
 	}
+	addr := fmt.Sprintf("127.0.0.1:%d", *port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		var opErr *net.OpError
+		if errors.As(err, &opErr) {
+			log.Fatalf("cannot start Keycast on %s (another instance may already be running): %v", addr, err)
+		}
+		log.Fatalf("cannot listen on %s: %v", addr, err)
+	}
+	defer listener.Close()
 	settings, err := config.Open(path)
 	if err != nil {
 		log.Fatalf("load settings: %v", err)
@@ -49,7 +61,6 @@ func main() {
 	if exe, err := os.Executable(); err == nil {
 		assetsDir = filepath.Join(filepath.Dir(exe), "web")
 	}
-	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("Keycast listening on http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, hub.RoutesWithAssets(assetsDir)))
+	log.Fatal(http.Serve(listener, hub.RoutesWithAssets(assetsDir)))
 }
