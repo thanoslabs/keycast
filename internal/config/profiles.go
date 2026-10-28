@@ -7,14 +7,20 @@ import (
 
 // Profile stores the appearance and layout of a named OBS browser source.
 type Profile struct {
-	Accent     string         `json:"accent"`
-	Opacity    int            `json:"opacity"`
-	Scale      int            `json:"scale"`
-	ShowMouse  bool           `json:"showMouse"`
-	Layout     string         `json:"layout"`
-	Placement  *Placement     `json:"placement,omitempty"`
-	KeyWidths  map[string]int `json:"keyWidths,omitempty"`
-	KeyHeights map[string]int `json:"keyHeights,omitempty"`
+	Accent     string               `json:"accent"`
+	Opacity    int                  `json:"opacity"`
+	Scale      int                  `json:"scale"`
+	ShowMouse  bool                 `json:"showMouse"`
+	Layout     string               `json:"layout"`
+	Placement  *Placement           `json:"placement,omitempty"`
+	KeyWidths  map[string]int       `json:"keyWidths,omitempty"`
+	KeyHeights map[string]int       `json:"keyHeights,omitempty"`
+	KeyOffsets map[string]KeyOffset `json:"keyOffsets,omitempty"`
+}
+
+type KeyOffset struct {
+	X int `json:"x"`
+	Y int `json:"y"`
 }
 
 type Placement struct {
@@ -73,6 +79,17 @@ func (p Profile) Validate() error {
 		}
 		if height < 50 || height > 300 {
 			return fmt.Errorf("key %q height must be 50 to 300 percent", key)
+		}
+	}
+	if len(p.KeyOffsets) > 128 {
+		return errors.New("too many key offset overrides")
+	}
+	for key, offset := range p.KeyOffsets {
+		if len(key) == 0 || len(key) > 32 {
+			return fmt.Errorf("invalid key label %q", key)
+		}
+		if offset.X < -300 || offset.X > 300 || offset.Y < -300 || offset.Y > 300 {
+			return fmt.Errorf("key %q offset must be between -300 and 300 pixels", key)
 		}
 	}
 	return nil
