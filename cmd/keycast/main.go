@@ -9,6 +9,8 @@ import (
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/thanoslabs/keycast/internal/capture"
 	"github.com/thanoslabs/keycast/internal/config"
@@ -34,7 +36,7 @@ func main() {
 		log.Fatalf("load settings: %v", err)
 	}
 	hub := server.New(settings)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *simulated {
 		go simulate.Run(ctx, hub.Emit)
@@ -51,5 +53,26 @@ func main() {
 	}
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("Keycast listening on http://%s", addr)
-	log.Fatal(http.ListenAndServe(addr, hub.RoutesWithAssets(assetsDir)))
+	listener := &http.Server{Addr: addr, Handler: hub.RoutesWithAssets(assetsDir)}
+	serveErrors := make(chan error, 1)
+	go func() {
+		serveErrors <- listener.ListenAndServe()
+	}()
+	select {
+	case err := <-serveErrors:
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server failed: %v", err)
+		}
+	case <-ctx.Done():
+		log.Print("Keycast shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := listener.Shutdown(shutdownCtx); err != nil {
+			log.Printf("graceful shutdown: %v", err)
+			_ = listener.Close()
+		}
+		if err := <-serveErrors; err != nil && err != http.ErrServerClosed {
+			log.Printf("server exit: %v", err)
+		}
+	}
 }
