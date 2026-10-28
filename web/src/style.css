@@ -89,3 +89,6 @@ html, body, #root { margin: 0; min-height: 100%; background: transparent; }
 
 .custom-css-field { display: grid !important; justify-content: stretch !important; }
 .custom-css-field textarea { width: 100%; min-height: 120px; resize: vertical; padding: 10px; border: 1px solid #69718a; border-radius: 6px; background: #171d2b; color: #f6f7fb; font: 12px/1.5 monospace; }
+
+/* Travel fill is proportional to physical key depth when analog samples are available. */
+.layout-key.is-analog { background: linear-gradient(to top, var(--accent) var(--analog-depth), rgba(75,65,106,.55) var(--analog-depth)); transition: background 30ms linear; }

@@ -14,6 +14,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/thanoslabs/keycast/internal/analog"
 	"github.com/thanoslabs/keycast/internal/config"
 	"github.com/thanoslabs/keycast/internal/events"
 	"github.com/thanoslabs/keycast/internal/state"
@@ -34,6 +35,28 @@ func New(settings ...*config.Store) *Hub {
 		h.settings = settings[0]
 	}
 	return h
+}
+
+// EmitAnalog broadcasts ephemeral travel samples without persisting input history.
+func (h *Hub) EmitAnalog(samples []analog.Sample) {
+	data, err := json.Marshal(struct {
+		Version int             `json:"version"`
+		Type    string          `json:"type"`
+		Data    []analog.Sample `json:"data"`
+	}{1, "input.analog", samples})
+	if err != nil {
+		return
+	}
+	h.mu.Lock()
+	defer h.mu.Unlock()
+	for c := range h.clients {
+		select {
+		case c <- data:
+		default:
+			close(c)
+			delete(h.clients, c)
+		}
+	}
 }
 
 func (h *Hub) Emit(key events.KeyEvent) {
