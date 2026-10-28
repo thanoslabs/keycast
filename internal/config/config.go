@@ -9,11 +9,12 @@ import (
 )
 
 type Settings struct {
-	Version   int    `json:"version"`
-	Accent    string `json:"accent"`
-	Opacity   int    `json:"opacity"`
-	Scale     int    `json:"scale"`
-	ShowMouse bool   `json:"showMouse"`
+	Version   int                `json:"version"`
+	Accent    string             `json:"accent"`
+	Opacity   int                `json:"opacity"`
+	Scale     int                `json:"scale"`
+	ShowMouse bool               `json:"showMouse"`
+	Profiles  map[string]Profile `json:"profiles,omitempty"`
 }
 
 func Default() Settings {
@@ -24,6 +25,13 @@ func (s Settings) Validate() error {
 	if s.Version != 1 {
 		return errors.New("unsupported settings version")
 	}
+	if err := s.validateAppearance(); err != nil {
+		return err
+	}
+	return validateProfiles(s.Profiles)
+}
+
+func (s Settings) validateAppearance() error {
 	if len(s.Accent) != 7 || s.Accent[0] != '#' {
 		return errors.New("accent must be a six-digit hex color")
 	}
@@ -65,7 +73,14 @@ func Open(path string) (*Store, error) {
 func (s *Store) Get() Settings {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
-	return s.value
+	value := s.value
+	if value.Profiles != nil {
+		value.Profiles = make(map[string]Profile, len(s.value.Profiles))
+		for name, profile := range s.value.Profiles {
+			value.Profiles[name] = profile
+		}
+	}
+	return value
 }
 
 func (s *Store) Save(value Settings) error {
