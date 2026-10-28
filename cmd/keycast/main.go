@@ -5,12 +5,13 @@ import (
 	"flag"
 	"fmt"
 	"log"
-	"net/http"
 	"net"
-	"errors"
+	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"syscall"
+	"time"
 
 	"github.com/thanoslabs/keycast/internal/capture"
 	"github.com/thanoslabs/keycast/internal/config"
@@ -34,11 +35,7 @@ func main() {
 	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	listener, err := net.Listen("tcp", addr)
 	if err != nil {
-		var opErr *net.OpError
-		if errors.As(err, &opErr) {
-			log.Fatalf("cannot start Keycast on %s (another instance may already be running): %v", addr, err)
-		}
-		log.Fatalf("cannot listen on %s: %v", addr, err)
+		log.Fatalf("cannot start Keycast on %s (another instance may already be running): %v", addr, err)
 	}
 	defer listener.Close()
 	settings, err := config.Open(path)
@@ -46,7 +43,7 @@ func main() {
 		log.Fatalf("load settings: %v", err)
 	}
 	hub := server.New(settings)
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 	if *simulated {
 		go simulate.Run(ctx, hub.Emit)
@@ -62,5 +59,26 @@ func main() {
 		assetsDir = filepath.Join(filepath.Dir(exe), "web")
 	}
 	log.Printf("Keycast listening on http://%s", addr)
-	log.Fatal(http.Serve(listener, hub.RoutesWithAssets(assetsDir)))
+	httpServer := &http.Server{Handler: hub.RoutesWithAssets(assetsDir)}
+	serveErrors := make(chan error, 1)
+	go func() {
+		serveErrors <- httpServer.Serve(listener)
+	}()
+	select {
+	case err := <-serveErrors:
+		if err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server failed: %v", err)
+		}
+	case <-ctx.Done():
+		log.Print("Keycast shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+			log.Printf("graceful shutdown: %v", err)
+			_ = httpServer.Close()
+		}
+		if err := <-serveErrors; err != nil && err != http.ErrServerClosed {
+			log.Printf("server exit: %v", err)
+		}
+	}
 }
