@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import { parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 import { VisualKeyEditor } from "./visual-key-editor";
@@ -72,6 +72,44 @@ export function SettingsDashboard() {
     setStatus("Unsaved changes");
   }
 
+  function exportProfile() {
+    if (!profile) return;
+    const blob = new Blob([JSON.stringify({ version: 1, profile }, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement("a");
+    anchor.href = url;
+    anchor.download = `keycast-${selected}.json`;
+    anchor.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function importProfile(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (file.size > 65536) { setStatus("Profile file exceeds 64 KB."); return; }
+    try {
+      const value: unknown = JSON.parse(await file.text());
+      if (!value || typeof value !== "object" || !("version" in value) || value.version !== 1 ||
+          !("profile" in value) || !value.profile || typeof value.profile !== "object") throw new Error("Unsupported profile format");
+      const candidate = value.profile as Record<string, unknown>;
+      if (typeof candidate.accent !== "string" || !/^#[0-9a-fA-F]{6}$/.test(candidate.accent) ||
+          typeof candidate.opacity !== "number" || candidate.opacity < 20 || candidate.opacity > 100 ||
+          typeof candidate.scale !== "number" || candidate.scale < 50 || candidate.scale > 200 ||
+          typeof candidate.showMouse !== "boolean" ||
+          (candidate.layout !== "compact" && candidate.layout !== "full")) throw new Error("Invalid profile appearance");
+      const name = window.prompt("Name for imported profile (lowercase letters, digits, hyphens):");
+      if (!name) return;
+      if (!/^[a-z0-9-]{1,32}$/.test(name) || name === "default" || settings.profiles?.[name] ||
+          Object.keys(settings.profiles ?? {}).length >= 32) throw new Error("Invalid, duplicate, or excess profile name");
+      setSettings(current => ({ ...current, profiles: { ...current.profiles, [name]: candidate as Profile } }));
+      setSelected(name);
+      setStatus("Imported locally. Save profiles to validate and persist.");
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : "Invalid profile JSON");
+    }
+  }
+
   async function save() {
     setStatus("Saving…");
     try {
@@ -99,6 +137,10 @@ export function SettingsDashboard() {
         <input aria-label="New profile name" placeholder="new-profile" value={newName} onChange={event => setNewName(event.target.value)} />
         <button type="button" onClick={addProfile}>Add profile</button>
         {selected !== "default" && <button type="button" onClick={removeProfile}>Delete</button>}
+      </div>
+      <div className="profile-actions">
+        {profile && <button type="button" onClick={exportProfile}>Export selected profile</button>}
+        <label>Import profile JSON <input type="file" accept=".json,application/json" onChange={event => void importProfile(event)} /></label>
       </div>
       <label>Keyboard layout
         <select value={layout} onChange={event => edit({ layout: parseLayout(event.target.value) })}>
