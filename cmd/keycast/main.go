@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
@@ -31,6 +32,12 @@ func main() {
 		}
 		path = filepath.Join(dir, "Keycast", "settings.json")
 	}
+	addr := fmt.Sprintf("127.0.0.1:%d", *port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		log.Fatalf("cannot start Keycast on %s (another instance may already be running): %v", addr, err)
+	}
+	defer listener.Close()
 	settings, err := config.Open(path)
 	if err != nil {
 		log.Fatalf("load settings: %v", err)
@@ -51,12 +58,11 @@ func main() {
 	if exe, err := os.Executable(); err == nil {
 		assetsDir = filepath.Join(filepath.Dir(exe), "web")
 	}
-	addr := fmt.Sprintf("127.0.0.1:%d", *port)
 	log.Printf("Keycast listening on http://%s", addr)
-	listener := &http.Server{Addr: addr, Handler: hub.RoutesWithAssets(assetsDir)}
+	httpServer := &http.Server{Handler: hub.RoutesWithAssets(assetsDir)}
 	serveErrors := make(chan error, 1)
 	go func() {
-		serveErrors <- listener.ListenAndServe()
+		serveErrors <- httpServer.Serve(listener)
 	}()
 	select {
 	case err := <-serveErrors:
@@ -67,9 +73,9 @@ func main() {
 		log.Print("Keycast shutting down")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
-		if err := listener.Shutdown(shutdownCtx); err != nil {
+		if err := httpServer.Shutdown(shutdownCtx); err != nil {
 			log.Printf("graceful shutdown: %v", err)
-			_ = listener.Close()
+			_ = httpServer.Close()
 		}
 		if err := <-serveErrors; err != nil && err != http.ErrServerClosed {
 			log.Printf("server exit: %v", err)
