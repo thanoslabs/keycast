@@ -48,7 +48,7 @@ export function PlacementEditor({ value, onChange }: { value: Placement; onChang
     if (!direction) return;
     event.preventDefault();
     const [axis, sign] = direction;
-    const key = `${target}${axis}` as keyof Placement;
+    const key = `${target}${axis}` as "keyboardX" | "keyboardY" | "mouseX" | "mouseY";
     const amount = event.shiftKey ? 10 : step;
     onChange({ ...value, [key]: adjust(value[key] + sign * amount, axis === "X" ? 760 : 450) });
   }
