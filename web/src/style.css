@@ -24,3 +24,11 @@ html, body, #root { margin: 0; min-height: 100%; background: transparent; }
 .connection { position: absolute; left: 20px; bottom: -12px; font-size: 11px; background: rgba(20, 20, 30, .82); padding: 4px 7px; border-radius: 5px; }
 @keyframes key-in { from { transform: translateY(4px); opacity: .6; } to { transform: translateY(0); opacity: 1; } }
 @media (prefers-reduced-motion: reduce) { .key { animation: none; } }
+
+.settings-form { display: grid; gap: 20px; max-width: 420px; padding: 24px; background: #252b3c; border-radius: 12px; }
+.settings-form label { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.settings-form input[type="range"] { width: 200px; }
+.settings-form button { border: 0; border-radius: 8px; padding: 12px; background: #9478e5; color: white; font-weight: 700; cursor: pointer; }
+.overlay { --accent: #6d53c5; }
+.key { background: var(--accent); }
+.mouse-button.active, .mouse-wheel.active, .mouse-side.active { background: var(--accent); }

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { SettingsDashboard, defaultSettings, loadSettings, type Settings } from "./settings";
 
 type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
@@ -45,6 +46,14 @@ function Overlay() {
   const [pressed, setPressed] = useState<string[]>([]);
   const [wheel, setWheel] = useState<string | null>(null);
   const [connected, setConnected] = useState(false);
+  const [settings, setSettings] = useState<Settings>(defaultSettings);
+  useEffect(() => {
+    let active = true;
+    const refresh = () => { void loadSettings().then(value => { if (active) setSettings(value); }).catch(() => {}); };
+    refresh();
+    const interval = setInterval(refresh, 2000);
+    return () => { active = false; clearInterval(interval); };
+  }, []);
   useEffect(() => {
     let active = true;
     let socket: WebSocket | undefined;
@@ -104,23 +113,18 @@ function Overlay() {
     };
   }, []);
   const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels));
-  return <main className="overlay" aria-label="Live Keycast input overlay">
+  return <main className="overlay" aria-label="Live Keycast input overlay" style={{ transform: `scale(${settings.scale / 100})`, transformOrigin: "top left", opacity: settings.opacity / 100, ["--accent" as string]: settings.accent }}>
     <section className="keyboard-panel" aria-label="Pressed keyboard keys">
       <div className="key-list">
         {keys.map(code => <span className="key" key={code}>{label(code)}</span>)}
         {keys.length === 0 && <span className="empty-keys" aria-hidden="true">Keyboard</span>}
       </div>
     </section>
-    <Mouse pressed={pressed} wheel={wheel} />
+    {settings.showMouse && <Mouse pressed={pressed} wheel={wheel} />}
     {!connected && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
 function App() {
-  return window.location.pathname.startsWith("/overlay") ? <Overlay /> :
-    <main className="dashboard"><h1>Keycast</h1><p>Keyboard and mouse visualization for OBS.</p>
-      <p>Run <code>go run ./cmd/keycast -simulate</code> for sample keys, or run without the flag on Windows for live capture.</p>
-      <a href="/overlay/default">Open OBS overlay</a>
-      <p className="hint">Add the overlay URL as an OBS Browser Source. Keep the Go server and web development server running.</p>
-    </main>;
+  return window.location.pathname.startsWith("/overlay") ? <Overlay /> : <SettingsDashboard />;
 }
 createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>);
