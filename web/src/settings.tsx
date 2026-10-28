@@ -3,7 +3,7 @@ import { parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
+export type Profile = { placement?: Placement; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
 export const defaultSettings: Settings = { version: 1, accent: "#6d53c5", opacity: 85, scale: 100, showMouse: true };
 export async function loadSettings(): Promise<Settings> {
@@ -125,6 +125,27 @@ export function SettingsDashboard() {
             value={profile?.keyHeights?.[selectedKey] ?? 100}
             onChange={event => edit({ keyHeights: { ...profile?.keyHeights, [selectedKey]: Number(event.target.value) } })} />
         </label>
+        <fieldset className="key-offset-controls">
+          <legend>Key position offset (px)</legend>
+          {(["x", "y"] as const).map(axis => <label key={axis}>{axis.toUpperCase()}
+            <input type="number" min={-300} max={300} step={1}
+              value={profile?.keyOffsets?.[selectedKey]?.[axis] ?? 0}
+              onChange={event => {
+                const n = Number(event.target.value);
+                if (!Number.isFinite(n)) return;
+                edit({ keyOffsets: {
+                  ...profile?.keyOffsets,
+                  [selectedKey]: { x: profile?.keyOffsets?.[selectedKey]?.x ?? 0,
+                    y: profile?.keyOffsets?.[selectedKey]?.y ?? 0, [axis]: Math.max(-300, Math.min(300, Math.round(n))) }
+                } });
+              }} />
+          </label>)}
+          <button type="button" onClick={() => {
+            const offsets = { ...profile?.keyOffsets };
+            delete offsets[selectedKey];
+            edit({ keyOffsets: offsets });
+          }}>Reset position</button>
+        </fieldset>
         <button type="button" onClick={() => {
           const heights = { ...profile?.keyHeights };
           delete heights[selectedKey];

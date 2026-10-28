@@ -21,7 +21,7 @@ const aliases: Record<string, string> = {
   "Left Win": "Win", "Right Shift": "Shift"
 };
 
-export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {} }: { layout: Layout; pressed: string[]; keyWidths?: Record<string, number>; keyHeights?: Record<string, number> }) {
+export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {}, keyOffsets = {} }: { layout: Layout; pressed: string[]; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }> }) {
   if (layout === "compact") {
     return <div className="key-list">
       {pressed.map(key => <span className="key" key={key}>{key}</span>)}
@@ -33,7 +33,7 @@ export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {
     {rows.map((row, index) => <div className="keyboard-row" key={index}>
       {row.map(key => <span key={key}
         className={`layout-key ${active.has(key) ? "is-pressed" : ""}`}
-        style={{ "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((keyWidths[key] ?? 100) / 100), minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px` } as CSSProperties}
+        style={{ "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((keyWidths[key] ?? 100) / 100), minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
       >{key}</span>)}
     </div>)}
   </div>;
