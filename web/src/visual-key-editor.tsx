@@ -24,7 +24,7 @@ export function VisualKeyEditor({ selected, onSelect, widths = {}, heights = {},
   const [overlaps, setOverlaps] = useState<string[]>([]);
   const apply = (value: number) => clamp(snapping ? snap(value, grid) : value);
 
-  function start(event: PointerEvent<HTMLButtonElement>, key: string, mode: "move" | "width" | "height" = "move") {
+  function start(event: PointerEvent<HTMLElement>, key: string, mode: "move" | "width" | "height" = "move") {
     if (event.button !== 0) return;
     onSelect(key);
     event.currentTarget.setPointerCapture(event.pointerId);
