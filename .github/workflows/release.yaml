@@ -94,6 +94,17 @@ jobs:
         with:
           go-version-file: go.mod
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Build web dashboard
+        working-directory: web
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+
       - name: Build Windows executable
         env:
           VERSION: ${{ steps.version.outputs.version }}
@@ -102,8 +113,12 @@ jobs:
           mkdir -p dist
           GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
             -trimpath -ldflags="-s -w" -o dist/keycast-windows-amd64.exe ./cmd/keycast
+          mkdir -p dist/package/web
+          cp dist/keycast-windows-amd64.exe dist/package/keycast.exe
+          cp -R web/dist/. dist/package/web/
+          (cd dist/package && zip -qr ../keycast-windows-amd64.zip keycast.exe web)
           cd dist
-          sha256sum keycast-windows-amd64.exe > SHA256SUMS
+          sha256sum keycast-windows-amd64.exe keycast-windows-amd64.zip > SHA256SUMS
 
       - name: Create GitHub release
         env:
@@ -111,6 +126,6 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           gh release create "${VERSION}" \
-            dist/keycast-windows-amd64.exe dist/SHA256SUMS \
+            dist/keycast-windows-amd64.exe dist/keycast-windows-amd64.zip dist/SHA256SUMS \
             --title "${VERSION}" \
             --generate-notes
