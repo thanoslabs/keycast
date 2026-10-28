@@ -28,7 +28,9 @@ type Hub struct {
 
 func New(settings ...*config.Store) *Hub {
 	h := &Hub{store: state.New(), clients: make(map[chan []byte]struct{})}
-	if len(settings) > 0 { h.settings = settings[0] }
+	if len(settings) > 0 {
+		h.settings = settings[0]
+	}
 	return h
 }
 
@@ -57,7 +59,9 @@ func (h *Hub) Routes() http.Handler {
 		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 	mux.HandleFunc("GET /ws/v1/overlay/default", h.overlay)
-	if h.settings != nil { settingsRoutes(mux, h.settings) }
+	if h.settings != nil {
+		settingsRoutes(mux, h.settings)
+	}
 	return mux
 }
 
