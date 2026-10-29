@@ -80,6 +80,11 @@ func (s *Store) Get() Settings {
 	if value.Profiles != nil {
 		value.Profiles = make(map[string]Profile, len(s.value.Profiles))
 		for name, profile := range s.value.Profiles {
+			if profile.ReactiveScene != nil {
+				scene := *profile.ReactiveScene
+				scene.Layers = append([]ReactiveLayer(nil), scene.Layers...)
+				profile.ReactiveScene = &scene
+			}
 			profile.HiddenKeys = append([]string(nil), profile.HiddenKeys...)
 			profile.VisibleKeys = append([]string(nil), profile.VisibleKeys...)
 			if profile.Placement != nil {
