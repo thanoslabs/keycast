@@ -8,20 +8,20 @@ import (
 
 // Profile stores the appearance and layout of a named OBS browser source.
 type Profile struct {
-	Accent      string               `json:"accent"`
-	Opacity     int                  `json:"opacity"`
-	Scale       int                  `json:"scale"`
-	ShowMouse   bool                 `json:"showMouse"`
-	Layout      string               `json:"layout"`
-	Placement   *Placement           `json:"placement,omitempty"`
-	KeyWidths   map[string]int       `json:"keyWidths,omitempty"`
-	KeyHeights  map[string]int       `json:"keyHeights,omitempty"`
-	KeyOffsets  map[string]KeyOffset `json:"keyOffsets,omitempty"`
-	ReactiveScene *ReactiveScene `json:"reactiveScene,omitempty"`
-	Animation   string               `json:"animation,omitempty"`
-	CustomCSS   string               `json:"customCss,omitempty"`
-	HiddenKeys  []string             `json:"hiddenKeys,omitempty"`
-	VisibleKeys []string             `json:"visibleKeys,omitempty"`
+	Accent        string               `json:"accent"`
+	Opacity       int                  `json:"opacity"`
+	Scale         int                  `json:"scale"`
+	ShowMouse     bool                 `json:"showMouse"`
+	Layout        string               `json:"layout"`
+	Placement     *Placement           `json:"placement,omitempty"`
+	KeyWidths     map[string]int       `json:"keyWidths,omitempty"`
+	KeyHeights    map[string]int       `json:"keyHeights,omitempty"`
+	KeyOffsets    map[string]KeyOffset `json:"keyOffsets,omitempty"`
+	ReactiveScene *ReactiveScene       `json:"reactiveScene,omitempty"`
+	Animation     string               `json:"animation,omitempty"`
+	CustomCSS     string               `json:"customCss,omitempty"`
+	HiddenKeys    []string             `json:"hiddenKeys,omitempty"`
+	VisibleKeys   []string             `json:"visibleKeys,omitempty"`
 }
 
 type KeyOffset struct {
@@ -58,7 +58,9 @@ func (p Profile) Validate() error {
 		return err
 	}
 	if p.ReactiveScene != nil {
-		if err := p.ReactiveScene.Validate(); err != nil { return err }
+		if err := p.ReactiveScene.Validate(); err != nil {
+			return err
+		}
 	}
 	if len(p.CustomCSS) > 8192 {
 		return errors.New("custom CSS must be at most 8192 bytes")
