@@ -117,6 +117,8 @@ jobs:
           cp dist/keycast-windows-amd64.exe dist/package/keycast.exe
           cp -R web/dist/. dist/package/web/
           cp packaging/windows/startup.ps1 dist/package/startup.ps1
+          cp packaging/windows/tray.ps1 dist/package/tray.ps1
+          cp packaging/windows/tray.vbs dist/package/tray.vbs
 
 
       - name: Bundle Wooting Analog SDK distributable
