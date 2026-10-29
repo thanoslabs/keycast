@@ -92,6 +92,7 @@ func (h *Hub) RoutesWithAssets(assetsDir string) http.Handler {
 	mux.HandleFunc("GET /ws/v1/overlay/default", h.overlay)
 	if h.settings != nil {
 		settingsRoutes(mux, h.settings)
+		assetRoutes(mux, h.settings)
 	}
 	if assetsDir != "" {
 		if info, err := os.Stat(filepath.Join(assetsDir, "index.html")); err == nil && !info.IsDir() {
