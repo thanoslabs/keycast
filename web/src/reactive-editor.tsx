@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { ReactiveLayer, ReactiveScene } from "./settings";
+import { triggerMatches } from "./reactive-triggers";
 
 type Asset = { id: string; url: string };
 type Props = { value?: ReactiveScene; onChange: (scene: ReactiveScene) => void };
@@ -23,7 +24,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     setSelected(id);
   }
   const current = scene.layers.find(layer => layer.id === selected);
-  const options = ["", "MouseLeft", "MouseRight", "MouseMiddle", "MouseButton4", "MouseButton5", "Space", "Enter", "Scan_1E", "Scan_20", "Scan_39"];
+  
   return <section className="reactive-editor">
     <h2>Reactive scene editor</h2>
     <p>Use uploaded assets to create independent idle and pressed image layers. Save profiles to publish changes to OBS.</p>
@@ -31,7 +32,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     <button type="button" onClick={add} disabled={!assets.length || scene.layers.length >= 24}>Add image layer</button>
     {!assets.length && <p>Upload a PNG or GIF in the asset library below to get started.</p>}
     <div style={{ position: "relative", width: 600, height: 400, maxWidth: "100%", overflow: "hidden", background: "repeating-conic-gradient(#aaa 0% 25%, #ddd 0% 50%) 50% / 20px 20px" }}>
-      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && held.includes(layer.trigger) ? layer.active : layer.idle}`} alt={layer.id}
+      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.id}
         onPointerDown={event => {
           event.preventDefault();
           setSelected(layer.id);
@@ -50,9 +51,10 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
       <label>Layer <select value={selected} onChange={event => setSelected(event.target.value)}>{scene.layers.map(layer => <option key={layer.id} value={layer.id}>{layer.id}</option>)}</select></label>
       <label>Idle image <select value={current.idle} onChange={event => update(current.id, { idle: event.target.value })}>{assets.map(asset => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)}</option>)}</select></label>
       <label>Pressed image <select value={current.active ?? ""} onChange={event => update(current.id, { active: event.target.value || undefined })}><option value="">None</option>{assets.map(asset => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)}</option>)}</select></label>
-      <label>Trigger <select value={current.trigger ?? ""} onChange={event => update(current.id, { trigger: event.target.value || undefined })}>{options.map(code => <option key={code} value={code}>{code || "None"}</option>)}</select></label>
+      <label>Trigger expression <input type="text" maxLength={64} value={current.trigger ?? ""} placeholder="MouseLeft | Scan_1E+Scan_20" onChange={event => update(current.id, { trigger: event.target.value || undefined })} /></label>
       {(["x", "y", "width", "height"] as const).map(key => <label key={key}>{key} <input type="number" min={key === "width" || key === "height" ? 1 : 0} max={2000} value={current[key]} onChange={event => update(current.id, { [key]: clamp(Number(event.target.value), key === "width" || key === "height" ? 1 : 0, 2000) })} /></label>)}
-      {current.trigger && <button type="button" onPointerDown={() => setHeld([current.trigger!])} onPointerUp={() => setHeld([])} onPointerCancel={() => setHeld([])}>Hold to test trigger</button>}
+      {current.trigger && <button type="button" onPointerDown={() => setHeld(current.trigger!.split("|")[0].split("+").map(code => code.trim()))} onPointerUp={() => setHeld([])} onPointerCancel={() => setHeld([])}>Hold to test trigger</button>}
+      <p>Use + for simultaneous inputs, | for alternatives. Examples: MouseLeft, Scan_1E+Scan_20, MouseLeft|MouseRight.</p>
       <button type="button" onClick={() => { onChange({ ...scene, layers: scene.layers.filter(layer => layer.id !== current.id) }); setSelected(""); }}>Remove layer</button>
     </div>}
   </section>;
