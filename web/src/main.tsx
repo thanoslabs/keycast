@@ -4,6 +4,7 @@ import "./style.css";
 import { SettingsDashboard, defaultSettings, loadSettings, type Settings } from "./settings";
 import { KeyboardLayout, parseLayout } from "./layouts";
 import { defaultPlacement } from "./placement";
+import { ReactiveOverlay } from "./reactive";
 
 type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } | { code: string; depth: number }[] };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
@@ -159,6 +160,7 @@ function Overlay() {
   const keys = pressed.filter(code => !mouseCodes.includes(code) && !(code in wheels)).map(label);
   const renderedKeys = demo ? demoKeys : keys;
   const renderedMouse = demo ? demoMouse : pressed;
+  const reactivePressed = demo ? [...demoKeys, ...demoMouse] : [...pressed, ...keys];
   const params = new URLSearchParams(window.location.search);
   const profileName = params.get("profile") ?? "default";
   const profile = profileName === "default" ? undefined : settings.profiles?.[profileName];
@@ -171,10 +173,11 @@ function Overlay() {
   const positions = placement ?? defaultPlacement;
   return <main className={`overlay animation-${profile?.animation ?? "pop"} ${placement ? "overlay-positioned" : ""}`} aria-label="Live Keycast input overlay" style={{ transform: `scale(${appearance.scale / 100})`, transformOrigin: "top left", opacity: appearance.opacity / 100, ["--accent" as string]: appearance.accent }}>
     {profile?.customCss && <style>{profile.customCss}</style>}
-    <section className={`keyboard-panel ${layout !== "compact" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
+    {profile?.reactiveScene && <ReactiveOverlay scene={profile.reactiveScene} pressed={reactivePressed} />}
+    {!profile?.reactiveScene?.hideDefault && <section className={`keyboard-panel ${layout !== "compact" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} visibleKeys={profile?.visibleKeys} analog={analog} />
     </section>
-    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} movement={movement} /></div> : <Mouse pressed={pressed} wheel={wheel} movement={movement} />)}
+    {!profile?.reactiveScene?.hideDefault && appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} movement={movement} /></div> : <Mouse pressed={pressed} wheel={wheel} movement={movement} />)}
     {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
