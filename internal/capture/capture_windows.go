@@ -65,6 +65,7 @@ type rawHeader struct {
 }
 type rawMouse struct {
 	Flags            uint16
+	_                uint16 // RAWMOUSE aligns the button union to a 4-byte boundary.
 	ButtonFlags      uint16
 	ButtonData       uint16
 	RawButtons       uint32
