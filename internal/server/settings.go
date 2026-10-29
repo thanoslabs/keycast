@@ -24,7 +24,7 @@ func settingsRoutes(mux *http.ServeMux, store *config.Store) {
 			return
 		}
 		var value config.Settings
-		dec := json.NewDecoder(io.LimitReader(r.Body, 4096))
+		dec := json.NewDecoder(io.LimitReader(r.Body, 262145))
 		dec.DisallowUnknownFields()
 		if err := dec.Decode(&value); err != nil {
 			http.Error(w, "invalid JSON settings", http.StatusBadRequest)

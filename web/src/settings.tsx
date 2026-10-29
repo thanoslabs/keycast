@@ -14,6 +14,49 @@ export async function loadSettings(): Promise<Settings> {
   return await response.json() as Settings;
 }
 
+type Asset = { id: string; url: string };
+function AssetLibrary() {
+  const [assets, setAssets] = useState<Asset[]>([]);
+  const [status, setStatus] = useState("");
+  async function refresh() {
+    const response = await fetch("/api/v1/assets", { cache: "no-store" });
+    if (!response.ok) throw new Error("Unable to list assets");
+    setAssets(await response.json() as Asset[]);
+  }
+  useEffect(() => { void refresh().catch(() => setStatus("Asset library unavailable")); }, []);
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(event.target.files ?? []);
+    event.target.value = "";
+    for (const file of files) {
+      if (file.size > 4 * 1024 * 1024) { setStatus("Each image must be under 4 MB"); return; }
+      try {
+        const response = await fetch("/api/v1/assets", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: file });
+        if (!response.ok) throw new Error(await response.text());
+        await refresh();
+        setStatus("Image uploaded");
+      } catch (error) { setStatus(error instanceof Error ? error.message : "Upload failed"); return; }
+    }
+  }
+  async function remove(id: string) {
+    if (!window.confirm("Delete this asset? Scenes using it will lose the image.")) return;
+    const response = await fetch(`/api/v1/assets/${id}`, { method: "DELETE" });
+    if (!response.ok) { setStatus("Unable to delete image"); return; }
+    await refresh();
+    setStatus("Image deleted");
+  }
+  return <section className="asset-library">
+    <h2>Custom animation assets</h2>
+    <p>Upload PNG or GIF images for reactive overlays (4 MB each, 64 images maximum).</p>
+    <label>Add images <input type="file" accept="image/png,image/gif" multiple onChange={event => void upload(event)} /></label>
+    <div className="asset-grid">{assets.map(asset => <div key={asset.id}>
+      <img src={asset.url} alt="Uploaded animation asset" style={{ width: 96, height: 96, objectFit: "contain" }} />
+      <button type="button" onClick={() => void navigator.clipboard.writeText(window.location.origin + asset.url)}>Copy URL</button>
+      <button type="button" onClick={() => void remove(asset.id)}>Delete</button>
+    </div>)}</div>
+    <span role="status">{status}</span>
+  </section>;
+}
+
 export function SettingsDashboard() {
   const [settings, setSettings] = useState<Settings>(defaultSettings);
   const [status, setStatus] = useState("Loading settings…");
@@ -36,7 +79,9 @@ export function SettingsDashboard() {
   function edit(change: Partial<Profile>) {
     if (selected === "default") {
       if (change.layout) setDefaultLayout(change.layout);
-      setSettings(current => ({ ...current, ...change, profiles: current.profiles }));
+      const appearanceChange = { ...change };
+      delete appearanceChange.layout;
+      setSettings(current => ({ ...current, ...appearanceChange, profiles: current.profiles }));
     } else {
       setSettings(current => ({
         ...current,
@@ -116,7 +161,7 @@ export function SettingsDashboard() {
     setStatus("Saving…");
     try {
       const response = await fetch("/api/v1/settings", {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings)
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: settings.version, accent: settings.accent, opacity: settings.opacity, scale: settings.scale, showMouse: settings.showMouse, profiles: settings.profiles })
       });
       if (!response.ok) throw new Error(await response.text());
       setSettings(await response.json() as Settings);
@@ -246,6 +291,7 @@ export function SettingsDashboard() {
       <button type="button" onClick={() => void save()}>Save profiles</button>
       <span role="status">{status}</span>
     </div>
+    <AssetLibrary />
     <section className="layout-preview">
       <h2>OBS preview</h2>
       <label><input type="checkbox" checked={demo} onChange={event => setDemo(event.target.checked)} /> Simulate keyboard and mouse input in preview</label>
