@@ -32,11 +32,19 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 	root := filepath.Join(filepath.Dir(store.Path()), "assets")
 	mux.HandleFunc("GET /api/v1/assets", func(w http.ResponseWriter, r *http.Request) {
 		entries, err := os.ReadDir(root)
-		if errors.Is(err, os.ErrNotExist) { entries = nil; err = nil }
-		if err != nil { http.Error(w, "unable to list assets", 500); return }
+		if errors.Is(err, os.ErrNotExist) {
+			entries = nil
+			err = nil
+		}
+		if err != nil {
+			http.Error(w, "unable to list assets", 500)
+			return
+		}
 		items := make([]assetInfo, 0)
 		for _, entry := range entries {
-			if entry.IsDir() { continue }
+			if entry.IsDir() {
+				continue
+			}
 			name := entry.Name()
 			ext := filepath.Ext(name)
 			id := name[:len(name)-len(ext)]
@@ -49,13 +57,25 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 		_ = json.NewEncoder(w).Encode(items)
 	})
 	mux.HandleFunc("DELETE /api/v1/assets/{id}", func(w http.ResponseWriter, r *http.Request) {
-		if !validOrigin(r.Header.Get("Origin"), r.Host) { http.Error(w, "invalid origin", 403); return }
+		if !validOrigin(r.Header.Get("Origin"), r.Host) {
+			http.Error(w, "invalid origin", 403)
+			return
+		}
 		id := r.PathValue("id")
-		if !validAssetID.MatchString(id) { http.NotFound(w, r); return }
+		if !validAssetID.MatchString(id) {
+			http.NotFound(w, r)
+			return
+		}
 		for _, ext := range []string{".png", ".gif"} {
 			err := os.Remove(filepath.Join(root, id+ext))
-			if err == nil { w.WriteHeader(http.StatusNoContent); return }
-			if !errors.Is(err, os.ErrNotExist) { http.Error(w, "unable to delete asset", 500); return }
+			if err == nil {
+				w.WriteHeader(http.StatusNoContent)
+				return
+			}
+			if !errors.Is(err, os.ErrNotExist) {
+				http.Error(w, "unable to delete asset", 500)
+				return
+			}
 		}
 		http.NotFound(w, r)
 	})
@@ -65,8 +85,14 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			return
 		}
 		entries, err := os.ReadDir(root)
-		if err != nil && !errors.Is(err, os.ErrNotExist) { http.Error(w, "unable to list assets", 500); return }
-		if len(entries) >= maxAssets { http.Error(w, "asset limit reached", 400); return }
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			http.Error(w, "unable to list assets", 500)
+			return
+		}
+		if len(entries) >= maxAssets {
+			http.Error(w, "asset limit reached", 400)
+			return
+		}
 		data, err := io.ReadAll(io.LimitReader(r.Body, maxAssetBytes+1))
 		if err != nil || len(data) == 0 || len(data) > maxAssetBytes {
 			http.Error(w, "invalid image size", 400)
