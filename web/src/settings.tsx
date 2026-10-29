@@ -6,7 +6,8 @@ import { ReactiveSceneEditor } from "./reactive-editor";
 import { themePresets, type ThemePreset } from "./themes";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
-export type ReactiveLayer = { id: string; idle: string; active?: string; trigger?: string; x: number; y: number; width: number; height: number };
+export type ReactiveFrame = { asset: string; duration: number };
+export type ReactiveLayer = { pressFrames?: ReactiveFrame[]; releaseFrames?: ReactiveFrame[]; id: string; idle: string; active?: string; trigger?: string; x: number; y: number; width: number; height: number };
 export type ReactiveScene = { hideDefault?: boolean; layers: ReactiveLayer[] };
 export type Profile = { placement?: Placement; reactiveScene?: ReactiveScene; keyWidths?: Record<string, number>; keyHeights?: Record<string, number>; keyOffsets?: Record<string, { x: number; y: number }>; accent: string; opacity: number; scale: number; showMouse: boolean; animation?: "pop" | "glow" | "none"; customCss?: string; hiddenKeys?: string[]; visibleKeys?: string[]; layout: Layout };
 export type Settings = { version: number; accent: string; opacity: number; scale: number; showMouse: boolean; profiles?: Record<string, Profile> };
