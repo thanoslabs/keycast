@@ -79,7 +79,8 @@ export function SettingsDashboard() {
   function edit(change: Partial<Profile>) {
     if (selected === "default") {
       if (change.layout) setDefaultLayout(change.layout);
-      const { layout: _layout, ...appearanceChange } = change;
+      const appearanceChange = { ...change };
+      delete appearanceChange.layout;
       setSettings(current => ({ ...current, ...appearanceChange, profiles: current.profiles }));
     } else {
       setSettings(current => ({
