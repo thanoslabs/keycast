@@ -102,10 +102,10 @@ var (
 )
 
 type session struct {
-	emit func(events.KeyEvent)
-	debug bool
+	emit            func(events.KeyEvent)
+	debug           bool
 	keyboardPackets uint64
-	mousePackets uint64
+	mousePackets    uint64
 }
 
 var active *session
