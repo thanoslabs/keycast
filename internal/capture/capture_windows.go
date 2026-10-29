@@ -193,6 +193,22 @@ func (s *session) read(handle uintptr) {
 			return
 		}
 		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
+		if mouse.Flags&1 == 0 { // Relative motion only; never expose cursor coordinates.
+			for _, movement := range []struct {
+				active bool
+				code   string
+			}{
+				{mouse.LastX > 0, "MouseMoveRight"},
+				{mouse.LastX < 0, "MouseMoveLeft"},
+				{mouse.LastY > 0, "MouseMoveDown"},
+				{mouse.LastY < 0, "MouseMoveUp"},
+			} {
+				if movement.active {
+					s.emit(events.KeyEvent{Code: movement.code, Action: events.Down})
+					s.emit(events.KeyEvent{Code: movement.code, Action: events.Up})
+				}
+			}
+		}
 		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
 			if s.debug {
 				log.Printf("raw mouse event: %s %s", event.Code, event.Action)
