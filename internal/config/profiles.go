@@ -17,6 +17,7 @@ type Profile struct {
 	KeyWidths   map[string]int       `json:"keyWidths,omitempty"`
 	KeyHeights  map[string]int       `json:"keyHeights,omitempty"`
 	KeyOffsets  map[string]KeyOffset `json:"keyOffsets,omitempty"`
+	ReactiveScene *ReactiveScene `json:"reactiveScene,omitempty"`
 	Animation   string               `json:"animation,omitempty"`
 	CustomCSS   string               `json:"customCss,omitempty"`
 	HiddenKeys  []string             `json:"hiddenKeys,omitempty"`
@@ -55,6 +56,9 @@ func (p Profile) Validate() error {
 	s := Settings{Version: 1, Accent: p.Accent, Opacity: p.Opacity, Scale: p.Scale, ShowMouse: p.ShowMouse}
 	if err := s.validateAppearance(); err != nil {
 		return err
+	}
+	if p.ReactiveScene != nil {
+		if err := p.ReactiveScene.Validate(); err != nil { return err }
 	}
 	if len(p.CustomCSS) > 8192 {
 		return errors.New("custom CSS must be at most 8192 bytes")
