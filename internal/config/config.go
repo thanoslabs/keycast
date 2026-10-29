@@ -46,6 +46,9 @@ func (s Settings) validateAppearance() error {
 	return nil
 }
 
+// Path returns the settings file location for colocated user assets.
+func (s *Store) Path() string { return s.path }
+
 type Store struct {
 	mu    sync.RWMutex
 	path  string
