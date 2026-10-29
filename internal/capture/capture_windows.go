@@ -193,6 +193,12 @@ func (s *session) read(handle uintptr) {
 			return
 		}
 		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
+		if mouse.Flags&1 == 0 { // Relative motion only; never expose cursor coordinates.
+			if mouse.LastX > 0 { s.emit(events.KeyEvent{Code: "MouseMoveRight", Action: events.Down}); s.emit(events.KeyEvent{Code: "MouseMoveRight", Action: events.Up}) }
+			if mouse.LastX < 0 { s.emit(events.KeyEvent{Code: "MouseMoveLeft", Action: events.Down}); s.emit(events.KeyEvent{Code: "MouseMoveLeft", Action: events.Up}) }
+			if mouse.LastY > 0 { s.emit(events.KeyEvent{Code: "MouseMoveDown", Action: events.Down}); s.emit(events.KeyEvent{Code: "MouseMoveDown", Action: events.Up}) }
+			if mouse.LastY < 0 { s.emit(events.KeyEvent{Code: "MouseMoveUp", Action: events.Down}); s.emit(events.KeyEvent{Code: "MouseMoveUp", Action: events.Up}) }
+		}
 		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
 			if s.debug {
 				log.Printf("raw mouse event: %s %s", event.Code, event.Action)
