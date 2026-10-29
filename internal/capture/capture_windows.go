@@ -6,6 +6,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -100,7 +101,12 @@ var (
 	getModuleHandle   = kernel32.NewProc("GetModuleHandleW")
 )
 
-type session struct{ emit func(events.KeyEvent) }
+type session struct {
+	emit func(events.KeyEvent)
+	debug bool
+	keyboardPackets uint64
+	mousePackets uint64
+}
 
 var active *session
 
@@ -131,7 +137,7 @@ func Run(ctx context.Context, emit func(events.KeyEvent)) error {
 		return fmt.Errorf("CreateWindowExW: %v", err)
 	}
 	defer destroyWindow.Call(hwnd)
-	active = &session{emit: emit}
+	active = &session{emit: emit, debug: os.Getenv("KEYCAST_DEBUG_INPUT") == "1"}
 	defer func() { active = nil }()
 	devices := [2]rawDevice{
 		{UsagePage: 1, Usage: 6, Flags: ridevInputSink, Target: hwnd},
@@ -141,7 +147,7 @@ func Run(ctx context.Context, emit func(events.KeyEvent)) error {
 	if ok == 0 {
 		return fmt.Errorf("RegisterRawInputDevices: %v", err)
 	}
-	log.Printf("native input capture initialized (keyboard and mouse Raw Input registered)")
+	log.Printf("native input capture initialized (keyboard and mouse Raw Input registered, hwnd=%#x, debug=%t)", hwnd, active.debug)
 	done := make(chan struct{})
 	defer close(done)
 	go func() {
@@ -179,17 +185,26 @@ func (s *session) read(handle uintptr) {
 	}
 	header := (*rawHeader)(unsafe.Pointer(&buf[0]))
 	if header.Type == rimTypeMouse {
+		s.mousePackets++
+		if s.debug && s.mousePackets <= 20 {
+			log.Printf("raw mouse packet #%d: size=%d", s.mousePackets, size)
+		}
 		if size < headerSize+uint32(unsafe.Sizeof(rawMouse{})) {
 			return
 		}
 		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
 		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
+			if s.debug { log.Printf("raw mouse event: %s %s", event.Code, event.Action) }
 			s.emit(event)
 		}
 		return
 	}
 	if header.Type != rimTypeKeyboard || size < headerSize+uint32(unsafe.Sizeof(rawKeyboard{})) {
 		return
+	}
+	s.keyboardPackets++
+	if s.debug && s.keyboardPackets <= 20 {
+		log.Printf("raw keyboard packet #%d: size=%d", s.keyboardPackets, size)
 	}
 	key := (*rawKeyboard)(unsafe.Pointer(&buf[headerSize]))
 	code := physicalCode(key.MakeCode, key.Flags, key.VKey)
