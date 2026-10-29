@@ -194,7 +194,9 @@ func (s *session) read(handle uintptr) {
 		}
 		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
 		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
-			if s.debug { log.Printf("raw mouse event: %s %s", event.Code, event.Action) }
+			if s.debug {
+				log.Printf("raw mouse event: %s %s", event.Code, event.Action)
+			}
 			s.emit(event)
 		}
 		return
