@@ -176,7 +176,7 @@ function Overlay() {
     {profile?.reactiveScene && <ReactiveOverlay scene={profile.reactiveScene} pressed={reactivePressed} />}
     {!profile?.reactiveScene?.hideDefault && <section className={`keyboard-panel ${layout !== "compact" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} visibleKeys={profile?.visibleKeys} analog={analog} />
-    </section>
+    </section>}
     {!profile?.reactiveScene?.hideDefault && appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} movement={movement} /></div> : <Mouse pressed={pressed} wheel={wheel} movement={movement} />)}
     {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
