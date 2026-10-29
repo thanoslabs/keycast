@@ -79,7 +79,8 @@ export function SettingsDashboard() {
   function edit(change: Partial<Profile>) {
     if (selected === "default") {
       if (change.layout) setDefaultLayout(change.layout);
-      setSettings(current => ({ ...current, ...change, profiles: current.profiles }));
+      const { layout: _layout, ...appearanceChange } = change;
+      setSettings(current => ({ ...current, ...appearanceChange, profiles: current.profiles }));
     } else {
       setSettings(current => ({
         ...current,
@@ -159,7 +160,7 @@ export function SettingsDashboard() {
     setStatus("Saving…");
     try {
       const response = await fetch("/api/v1/settings", {
-        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(settings)
+        method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ version: settings.version, accent: settings.accent, opacity: settings.opacity, scale: settings.scale, showMouse: settings.showMouse, profiles: settings.profiles })
       });
       if (!response.ok) throw new Error(await response.text());
       setSettings(await response.json() as Settings);
