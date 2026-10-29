@@ -24,14 +24,14 @@ type ReactiveFrame struct {
 type ReactiveLayer struct {
 	PressFrames   []ReactiveFrame `json:"pressFrames,omitempty"`
 	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
-	ID      string `json:"id"`
-	Idle    string `json:"idle"`
-	Active  string `json:"active,omitempty"`
-	Trigger string `json:"trigger,omitempty"`
-	X       int    `json:"x"`
-	Y       int    `json:"y"`
-	Width   int    `json:"width"`
-	Height  int    `json:"height"`
+	ID            string          `json:"id"`
+	Idle          string          `json:"idle"`
+	Active        string          `json:"active,omitempty"`
+	Trigger       string          `json:"trigger,omitempty"`
+	X             int             `json:"x"`
+	Y             int             `json:"y"`
+	Width         int             `json:"width"`
+	Height        int             `json:"height"`
 }
 
 func (s ReactiveScene) Validate() error {
