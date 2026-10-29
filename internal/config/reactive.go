@@ -16,7 +16,14 @@ type ReactiveScene struct {
 	Layers      []ReactiveLayer `json:"layers"`
 }
 
+type ReactiveFrame struct {
+	Asset string `json:"asset"`
+	Duration int `json:"duration"`
+}
+
 type ReactiveLayer struct {
+	PressFrames []ReactiveFrame `json:"pressFrames,omitempty"`
+	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
 	ID      string `json:"id"`
 	Idle    string `json:"idle"`
 	Active  string `json:"active,omitempty"`
@@ -42,6 +49,12 @@ func (s ReactiveScene) Validate() error {
 		}
 		if l.Active != "" && !reactiveAssetID.MatchString(l.Active) {
 			return fmt.Errorf("invalid active asset for layer %q", l.ID)
+		}
+		for _, frames := range [][]ReactiveFrame{l.PressFrames, l.ReleaseFrames} {
+			if len(frames) > 32 { return errors.New("too many animation frames") }
+			for _, frame := range frames {
+				if !reactiveAssetID.MatchString(frame.Asset) || frame.Duration < 20 || frame.Duration > 5000 { return errors.New("invalid animation frame") }
+			}
 		}
 		if len(l.Trigger) > 64 {
 			return errors.New("reactive trigger too long")
