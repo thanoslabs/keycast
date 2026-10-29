@@ -7,6 +7,7 @@ import { defaultPlacement } from "./placement";
 
 type Message = { version: number; type: string; sequence: number; pressed?: string[]; data?: { code: string; action: "down" | "up" } | { code: string; depth: number }[] };
 const mouseCodes = ["MouseLeft", "MouseMiddle", "MouseRight", "MouseButton4", "MouseButton5"];
+const motion: Record<string, string> = { MouseMoveUp: "↑", MouseMoveDown: "↓", MouseMoveLeft: "←", MouseMoveRight: "→" };
 const wheels: Record<string, string> = { WheelUp: "↑", WheelDown: "↓", WheelLeft: "←", WheelRight: "→" };
 const scans: Record<string, string> = {
   "01":"Esc","02":"1","03":"2","04":"3","05":"4","06":"5","07":"6","08":"7","09":"8","0A":"9","0B":"0",
@@ -31,7 +32,7 @@ function label(code: string): string {
   if (/^Key[A-Z]$/.test(code)) return code.slice(3);
   return code;
 }
-function Mouse({ pressed, wheel }: { pressed: string[]; wheel: string | null }) {
+function Mouse({ pressed, wheel, movement }: { pressed: string[]; wheel: string | null; movement: string | null }) {
   const down = new Set(pressed);
   return <section className="mouse-panel" aria-label="Mouse input">
     <div className="mouse-shape" aria-hidden="true">
@@ -41,12 +42,13 @@ function Mouse({ pressed, wheel }: { pressed: string[]; wheel: string | null }) 
       <div className={`mouse-side side-one ${down.has("MouseButton4") ? "active" : ""}`} />
       <div className={`mouse-side side-two ${down.has("MouseButton5") ? "active" : ""}`} />
     </div>
-    <div className="mouse-wheel-status">{wheel ? `Scroll ${wheels[wheel]}` : "Mouse"}</div>
+    <div className="mouse-wheel-status">{wheel ? `Scroll ${wheels[wheel]}` : movement ? `Move ${motion[movement]}` : "Mouse"}</div>
   </section>;
 }
 function Overlay() {
   const [pressed, setPressed] = useState<string[]>([]);
   const [wheel, setWheel] = useState<string | null>(null);
+  const [movement, setMovement] = useState<string | null>(null);
   const [analog, setAnalog] = useState<Record<string, number>>({});
   const [connected, setConnected] = useState(false);
   const [settings, setSettings] = useState<Settings>(defaultSettings);
@@ -62,6 +64,7 @@ function Overlay() {
     let socket: WebSocket | undefined;
     let retry: ReturnType<typeof setTimeout> | undefined;
     let wheelTimeout: ReturnType<typeof setTimeout> | undefined;
+    let movementTimeout: ReturnType<typeof setTimeout> | undefined;
     let sequence = -1;
     function connect() {
       if (!active) return;
@@ -91,6 +94,14 @@ function Overlay() {
           }
           sequence = message.sequence;
           const { code, action } = message.data as {code:string;action:"down"|"up"};
+          if (code in motion) {
+            if (action === "down") {
+              setMovement(code);
+              clearTimeout(movementTimeout);
+              movementTimeout = setTimeout(() => setMovement(null), 180);
+            }
+            return;
+          }
           if (code in wheels) {
             if (action === "down") {
               setWheel(code);
@@ -108,6 +119,8 @@ function Overlay() {
         setPressed([]);
         setAnalog({});
         setWheel(null);
+        setMovement(null);
+        clearTimeout(movementTimeout);
         clearTimeout(wheelTimeout);
         if (active) retry = setTimeout(connect, 1000);
       };
@@ -118,6 +131,7 @@ function Overlay() {
       active = false;
       clearTimeout(retry);
       clearTimeout(wheelTimeout);
+      clearTimeout(movementTimeout);
       socket?.close();
     };
   }, []);
@@ -160,7 +174,7 @@ function Overlay() {
     <section className={`keyboard-panel ${layout !== "compact" ? "keyboard-panel-full" : ""}`} style={placement ? { position: "absolute", left: positions.keyboardX, top: positions.keyboardY, transform: `scale(${(positions.keyboardScale || 100) / 100})`, transformOrigin: "top left" } : undefined} aria-label="Pressed keyboard keys">
       <KeyboardLayout layout={layout} pressed={visibleKeys} keyWidths={profile?.keyWidths} keyHeights={profile?.keyHeights} keyOffsets={profile?.keyOffsets} visibleKeys={profile?.visibleKeys} analog={analog} />
     </section>
-    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} /></div> : <Mouse pressed={pressed} wheel={wheel} />)}
+    {appearance.showMouse && (placement ? <div style={{ position: "absolute", left: positions.mouseX, top: positions.mouseY, transform: `scale(${(positions.mouseScale || 100) / 100})`, transformOrigin: "top left" }}><Mouse pressed={visibleMouse} wheel={wheel} movement={movement} /></div> : <Mouse pressed={pressed} wheel={wheel} movement={movement} />)}
     {!connected && !demo && <div className="connection" role="status">Waiting for Keycast…</div>}
   </main>;
 }
