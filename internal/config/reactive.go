@@ -4,9 +4,11 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 )
 
 var reactiveAssetID = regexp.MustCompile("^[a-f0-9]{32}$")
+var reactiveTriggerCode = regexp.MustCompile("^[A-Za-z0-9_]+$")
 
 // ReactiveScene renders independent image layers driven by held input codes.
 type ReactiveScene struct {
@@ -43,6 +45,23 @@ func (s ReactiveScene) Validate() error {
 		}
 		if len(l.Trigger) > 64 {
 			return errors.New("reactive trigger too long")
+		}
+		if l.Trigger != "" {
+			groups := strings.Split(l.Trigger, "|")
+			if len(groups) > 8 {
+				return errors.New("too many trigger alternatives")
+			}
+			for _, group := range groups {
+				codes := strings.Split(group, "+")
+				if len(codes) > 8 {
+					return errors.New("too many simultaneous trigger codes")
+				}
+				for _, code := range codes {
+					if !reactiveTriggerCode.MatchString(strings.TrimSpace(code)) {
+						return errors.New("invalid reactive trigger expression")
+					}
+				}
+			}
 		}
 		if l.X < 0 || l.Y < 0 || l.X > 2000 || l.Y > 2000 || l.Width < 1 || l.Height < 1 || l.Width > 2000 || l.Height > 2000 {
 			return errors.New("reactive layer dimensions out of range")
