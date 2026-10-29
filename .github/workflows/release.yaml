@@ -117,9 +117,65 @@ jobs:
           cp dist/keycast-windows-amd64.exe dist/package/keycast.exe
           cp -R web/dist/. dist/package/web/
           cp packaging/windows/startup.ps1 dist/package/startup.ps1
-          (cd dist/package && zip -qr ../keycast-windows-amd64.zip keycast.exe web startup.ps1)
-          cd dist
-          sha256sum keycast-windows-amd64.exe keycast-windows-amd64.zip > SHA256SUMS
+
+
+      - name: Bundle Wooting Analog SDK distributable
+        env:
+          WOOTING_SDK_VERSION: v0.9.1
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import io
+          import json
+          import os
+          from pathlib import Path
+          import tarfile
+          import urllib.request
+          import zipfile
+
+          version = os.environ["WOOTING_SDK_VERSION"]
+          api = f"https://api.github.com/repos/WootingKb/wooting-analog-sdk/releases/tags/{version}"
+          headers = {"User-Agent": "keycast-release", "Accept": "application/vnd.github+json"}
+          def fetch(url):
+              return urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120).read()
+          release = json.loads(fetch(api))
+          assets = [a for a in release["assets"] if "windows" in a["name"].lower()
+                    and ("x86_64" in a["name"].lower() or "amd64" in a["name"].lower())
+                    and a["name"].lower().endswith((".zip", ".tar.gz", ".tgz"))]
+          if len(assets) != 1:
+              raise SystemExit(f"Expected one Windows x64 SDK archive, found: {[a['name'] for a in assets]}")
+          asset = assets[0]
+          archive = fetch(asset["browser_download_url"])
+          name = asset["name"].lower()
+          if name.endswith(".zip"):
+              with zipfile.ZipFile(io.BytesIO(archive)) as z:
+                  dlls = [n for n in z.namelist() if Path(n).name.lower() == "wooting_analog_sdk_dist.dll"
+                          and "debug" not in n.lower()]
+                  if len(dlls) != 1:
+                      raise SystemExit(f"Expected one release DLL in {asset['name']}, found: {dlls}")
+                  dll = z.read(dlls[0])
+          else:
+              with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as t:
+                  matches = [m for m in t.getmembers() if m.isfile()
+                             and Path(m.name).name.lower() == "wooting_analog_sdk_dist.dll"
+                             and "debug" not in m.name.lower()]
+                  if len(matches) != 1:
+                      raise SystemExit(f"Expected one release DLL in {asset['name']}, found: {[m.name for m in matches]}")
+                  dll = t.extractfile(matches[0]).read()
+          dest = Path("dist/package/wooting_analog_sdk_dist.dll")
+          dest.write_bytes(dll)
+          license_url = f"https://raw.githubusercontent.com/WootingKb/wooting-analog-sdk/{version}/LICENSE"
+          Path("dist/package/WOOTING-SDK-LICENSE.txt").write_bytes(fetch(license_url))
+          print(f"Bundled Wooting SDK {version} from {asset['name']} ({len(dll)} bytes)")
+          PY
+
+      - name: Package Windows portable release
+        run: |
+          set -euo pipefail
+          (cd dist/package && zip -qr ../keycast-windows-amd64.zip .)
+          (cd dist && sha256sum keycast-windows-amd64.exe keycast-windows-amd64.zip > SHA256SUMS)
+          unzip -Z1 dist/keycast-windows-amd64.zip | grep -Fxq wooting_analog_sdk_dist.dll
+          unzip -Z1 dist/keycast-windows-amd64.zip | grep -Fxq WOOTING-SDK-LICENSE.txt
 
       - name: Create GitHub release
         env:
