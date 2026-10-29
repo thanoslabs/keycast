@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"image"
 	_ "image/gif"
 	_ "image/png"
@@ -13,7 +14,6 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"errors"
 
 	"github.com/thanoslabs/keycast/internal/config"
 )
