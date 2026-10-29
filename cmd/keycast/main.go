@@ -23,7 +23,7 @@ import (
 func main() {
 	port := flag.Int("port", 9867, "local HTTP port")
 	simulated := flag.Bool("simulate", false, "emit synthetic keyboard input")
-	wooting := flag.Bool("wooting-analog", false, "enable optional Wooting Analog SDK key travel capture")
+	wooting := flag.Bool("wooting-analog", true, "enable Wooting Analog SDK automatically when available (disable with -wooting-analog=false)")
 	configPath := flag.String("config", "", "settings file path (defaults to OS user config directory)")
 	flag.Parse()
 	path := *configPath
@@ -50,7 +50,7 @@ func main() {
 	if *wooting {
 		go func() {
 			if err := analog.Run(ctx, hub.EmitAnalog); err != nil {
-				log.Printf("Wooting analog unavailable (digital input continues): %v", err)
+				log.Printf("Wooting analog inactive (digital input continues): %v", err)
 			}
 		}()
 	}
