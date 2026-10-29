@@ -5,6 +5,7 @@ package capture
 import (
 	"context"
 	"fmt"
+	"log"
 	"runtime"
 	"syscall"
 	"unsafe"
@@ -139,6 +140,7 @@ func Run(ctx context.Context, emit func(events.KeyEvent)) error {
 	if ok == 0 {
 		return fmt.Errorf("RegisterRawInputDevices: %v", err)
 	}
+	log.Printf("native input capture initialized (keyboard and mouse Raw Input registered)")
 	done := make(chan struct{})
 	defer close(done)
 	go func() {
@@ -166,16 +168,19 @@ func (s *session) read(handle uintptr) {
 	var size uint32
 	headerSize := uint32(unsafe.Sizeof(rawHeader{}))
 	result, _, _ := getRawData.Call(handle, ridInput, 0, uintptr(unsafe.Pointer(&size)), uintptr(headerSize))
-	if uint32(result) == ^uint32(0) || size < headerSize+uint32(unsafe.Sizeof(rawMouse{})) || size > 65536 {
+	if uint32(result) == ^uint32(0) || size < headerSize+uint32(unsafe.Sizeof(rawKeyboard{})) || size > 65536 {
 		return
 	}
 	buf := make([]byte, size)
 	result, _, _ = getRawData.Call(handle, ridInput, uintptr(unsafe.Pointer(&buf[0])), uintptr(unsafe.Pointer(&size)), uintptr(headerSize))
-	if uint32(result) == ^uint32(0) || result < uintptr(headerSize)+unsafe.Sizeof(rawMouse{}) {
+	if uint32(result) == ^uint32(0) || result < uintptr(headerSize)+unsafe.Sizeof(rawKeyboard{}) {
 		return
 	}
 	header := (*rawHeader)(unsafe.Pointer(&buf[0]))
 	if header.Type == rimTypeMouse {
+		if size < headerSize+uint32(unsafe.Sizeof(rawMouse{})) {
+			return
+		}
 		mouse := (*rawMouse)(unsafe.Pointer(&buf[headerSize]))
 		for _, event := range DecodeMouseButtons(mouse.ButtonFlags, mouse.ButtonData) {
 			s.emit(event)
