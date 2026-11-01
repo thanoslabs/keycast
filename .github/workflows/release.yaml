@@ -171,6 +171,11 @@ jobs:
           print(f"Bundled Wooting SDK {version} from {asset['name']} ({len(dll)} bytes)")
           PY
 
+      - name: Record packaged component checksums
+        run: |
+          set -euo pipefail
+          (cd dist/package && find . -type f -print0 | sort -z | xargs -0 sha256sum) > dist/PACKAGE-SHA256SUMS
+
       - name: Package Windows portable release
         run: |
           set -euo pipefail
