@@ -19,7 +19,7 @@ export async function loadSettings(): Promise<Settings> {
   return await response.json() as Settings;
 }
 
-type Asset = { id: string; url: string };
+type Asset = { id: string; url: string; name?: string };
 function AssetLibrary() {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [status, setStatus] = useState("");
@@ -35,7 +35,7 @@ function AssetLibrary() {
     for (const file of files) {
       if (file.size > 4 * 1024 * 1024) { setStatus("Each image must be under 4 MB"); return; }
       try {
-        const response = await fetch("/api/v1/assets", { method: "POST", headers: { "Content-Type": "application/octet-stream" }, body: file });
+        const response = await fetch("/api/v1/assets", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-Asset-Name": encodeURIComponent(file.name) }, body: file });
         if (!response.ok) throw new Error(await response.text());
         await refresh();
         setStatus("Image uploaded");
@@ -54,7 +54,8 @@ function AssetLibrary() {
     <p>Upload PNG or GIF images for reactive overlays (4 MB each, 64 images maximum).</p>
     <label>Add images <input type="file" accept="image/png,image/gif" multiple onChange={event => void upload(event)} /></label>
     <div className="asset-grid">{assets.map(asset => <div key={asset.id}>
-      <img src={asset.url} alt="Uploaded animation asset" style={{ width: 96, height: 96, objectFit: "contain" }} />
+      <img src={asset.url} alt={asset.name ?? "Uploaded animation asset"} style={{ width: 96, height: 96, objectFit: "contain" }} />
+      <span>{asset.name ?? "Unnamed sprite"}</span>
       <button type="button" onClick={() => void navigator.clipboard.writeText(window.location.origin + asset.url)}>Copy URL</button>
       <button type="button" onClick={() => void remove(asset.id)}>Delete</button>
     </div>)}</div>
