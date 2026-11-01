@@ -14,6 +14,7 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"strings"
 
 	"github.com/thanoslabs/keycast/internal/config"
 )
@@ -26,6 +27,7 @@ var validAssetID = regexp.MustCompile("^[a-f0-9]{32}$")
 type assetInfo struct {
 	ID  string `json:"id"`
 	URL string `json:"url"`
+	Name string `json:"name,omitempty"`
 }
 
 func assetRoutes(mux *http.ServeMux, store *config.Store) {
@@ -49,7 +51,9 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			ext := filepath.Ext(name)
 			id := name[:len(name)-len(ext)]
 			if validAssetID.MatchString(id) && (ext == ".png" || ext == ".gif") {
-				items = append(items, assetInfo{id, "/api/v1/assets/" + id})
+				displayName := id + ext
+				if data, readErr := os.ReadFile(filepath.Join(root, id+".name")); readErr == nil { displayName = string(data) }
+				items = append(items, assetInfo{ID: id, URL: "/api/v1/assets/" + id, Name: displayName})
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -69,6 +73,7 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 		for _, ext := range []string{".png", ".gif"} {
 			err := os.Remove(filepath.Join(root, id+ext))
 			if err == nil {
+				_ = os.Remove(filepath.Join(root, id+".name"))
 				w.WriteHeader(http.StatusNoContent)
 				return
 			}
@@ -89,7 +94,9 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			http.Error(w, "unable to list assets", 500)
 			return
 		}
-		if len(entries) >= maxAssets {
+		count := 0
+		for _, entry := range entries { if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") { count++ } }
+		if count >= maxAssets {
 			http.Error(w, "asset limit reached", 400)
 			return
 		}
@@ -129,9 +136,13 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			http.Error(w, "storage unavailable", 500)
 			return
 		}
+		name := filepath.Base(r.Header.Get("X-Asset-Name"))
+		if name == "." || name == "" { name = id + ext }
+		if len(name) > 128 { name = name[:128] }
+		_ = os.WriteFile(filepath.Join(root, id+".name"), []byte(name), 0600)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		_ = json.NewEncoder(w).Encode(assetInfo{id, "/api/v1/assets/" + id})
+		_ = json.NewEncoder(w).Encode(assetInfo{ID: id, URL: "/api/v1/assets/" + id, Name: name})
 	})
 	mux.HandleFunc("GET /api/v1/assets/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
