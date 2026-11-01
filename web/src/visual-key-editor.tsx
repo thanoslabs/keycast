@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import { rows } from "./layouts";
+import { keyUnits, rows } from "./layouts";
 
 type Offset = { x: number; y: number };
 type Props = {
@@ -101,7 +101,9 @@ export function VisualKeyEditor({ selected, onSelect, widths = {}, heights = {},
           onPointerCancel={end}
           onKeyDown={event => nudge(event, key)}
           style={{
-            "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((widths[key] ?? 100) / 100),
+            "--key-grow": keyUnits(key) * ((widths[key] ?? 100) / 100),
+            flex: `0 0 ${42 * keyUnits(key) * ((widths[key] ?? 100) / 100)}px`,
+            boxSizing: "border-box",
             minHeight: `${35 * ((heights[key] ?? 100) / 100)}px`,
             transform: `translate(${offsets[key]?.x ?? 0}px, ${offsets[key]?.y ?? 0}px)`
           } as CSSProperties}>{key}
