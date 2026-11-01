@@ -96,7 +96,8 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			return
 		}
 		count := 0
-		for _, entry := range entries { if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") {
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") {
 				count++
 			} }
 		if count >= maxAssets {
