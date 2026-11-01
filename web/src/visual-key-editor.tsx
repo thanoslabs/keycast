@@ -1,5 +1,6 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
 import { keyUnits, rows } from "./layouts";
+import { parseKleLayout, type KleKey } from "./kle-layout";
 
 type Offset = { x: number; y: number };
 type Props = {
@@ -20,6 +21,9 @@ export const snap = (value: number, grid: number) => Math.round(value / grid) * 
 export function VisualKeyEditor({ selected, onSelect, visibleKeys, widths = {}, heights = {}, offsets = {}, onOffsetsChange, onWidthsChange, onHeightsChange }: Props) {
   const drag = useRef<{ key: string; x: number; y: number; origin: Offset; offsets: Record<string, Offset>; mode: "move" | "width" | "height"; originSize: number; originalSizes: Record<string, number> } | null>(null);
   const [grid, setGrid] = useState(8);
+  const [kleRaw, setKleRaw] = useState("");
+  const [kleKeys, setKleKeys] = useState<KleKey[] | null>(null);
+  const [kleError, setKleError] = useState("");
   const [snapping, setSnapping] = useState(true);
   const [showOverlap, setShowOverlap] = useState(true);
   const [overlaps, setOverlaps] = useState<string[]>([]);
@@ -90,6 +94,15 @@ export function VisualKeyEditor({ selected, onSelect, visibleKeys, widths = {}, 
       <label><input type="checkbox" checked={showOverlap} onChange={event => setShowOverlap(event.target.checked)} /> Show overlaps</label>
       <button type="button" onClick={checkOverlaps}>Check overlaps</button>
     </div>
+    <details><summary>Import KLE raw layout (preview)</summary>
+      <p>Paste JSON from Keyboard Layout Editor’s Raw Data tab. This preview preserves key coordinates and sizes; importing does not yet change saved overlay geometry.</p>
+      <textarea rows={5} value={kleRaw} onChange={event => setKleRaw(event.target.value)} aria-label="KLE raw layout JSON" />
+      <button type="button" onClick={() => { try { setKleKeys(parseKleLayout(kleRaw)); setKleError(""); } catch (error) { setKleError(error instanceof Error ? error.message : "Invalid KLE layout"); } }}>Preview KLE layout</button>
+      {kleError && <p role="alert">{kleError}</p>}
+      {kleKeys && <div aria-label="KLE layout preview" style={{ position: "relative", overflow: "auto", minHeight: Math.max(...kleKeys.map(key => key.y + key.h)) * 42 + 12 }}>
+        {kleKeys.map((key, index) => <div key={index} className="layout-key" style={{ position: "absolute", left: key.x * 42, top: key.y * 42, width: key.w * 42 - 4, height: key.h * 42 - 4, transform: `rotate(${key.rotation}deg)`, transformOrigin: `${(key.rotationX - key.x) * 42}px ${(key.rotationY - key.y) * 42}px`, boxSizing: "border-box" }}>{key.label}</div>)}
+      </div>}
+    </details>
     <div className="visual-key-board" aria-label="Interactive keyboard layout editor">
       {rows.map((row, index) => <div className="keyboard-row" key={index}>
         {row.map(key => <button type="button" key={key} data-key={key}
