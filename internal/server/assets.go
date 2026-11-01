@@ -203,16 +203,16 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			}
 			path := strings.ReplaceAll(file.Name, "\\", "/")
 			parts := strings.Split(path, "/")
-			if len(parts) != 2 || parts[0] == ".." || parts[1] == ".." {
+			if len(parts) < 2 || parts[len(parts)-2] == ".." || parts[len(parts)-1] == ".." {
 				continue
 			}
-			part := strings.ReplaceAll(parts[0], "_", "-")
+			part := strings.ReplaceAll(parts[len(parts)-2], "_", "-")
 			switch part {
 			case "body", "face", "left-hand", "right-hand", "keyboard":
 			default:
 				continue
 			}
-			name := parts[1]
+			name := parts[len(parts)-1]
 			ext := strings.ToLower(filepath.Ext(name))
 			if ext != ".png" && ext != ".gif" {
 				continue
