@@ -10,6 +10,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [selected, setSelected] = useState("");
   const [held, setHeld] = useState<string[]>([]);
+  const [preview, setPreview] = useState(false);
   const scene = value ?? { layers: [] };
   useEffect(() => {
     void fetch("/api/v1/assets").then(response => response.ok ? response.json() as Promise<Asset[]> : []).then(setAssets).catch(() => {});
@@ -40,8 +41,10 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     <button type="button" onClick={() => add()} disabled={!assets.length || scene.layers.length >= 24}>Add image layer</button>
     <div className="profile-actions">{["body", "face", "left-hand", "right-hand", "keyboard"].map(part => <button type="button" key={part} disabled={!assets.length || scene.layers.length >= 24} onClick={() => add(part)}>Add {part.replace("-", " ")}</button>)}</div>
     {!assets.length && <p>Upload a PNG or GIF in the asset library below to get started.</p>}
+    <label><input type="checkbox" checked={preview} onChange={event => setPreview(event.target.checked)} /> Preview input states</label>
+    {preview && <div className="profile-actions">{["MouseLeft", "MouseRight", "Scan_1E", "Scan_20", "Space"].map(code => <button type="button" key={code} aria-pressed={held.includes(code)} onClick={() => setHeld(previous => previous.includes(code) ? previous.filter(item => item !== code) : [...previous, code])}>{code}</button>)}<button type="button" onClick={() => setHeld([])}>Release all</button></div>}
     <div style={{ position: "relative", width: 600, height: 400, maxWidth: "100%", overflow: "hidden", background: "repeating-conic-gradient(#aaa 0% 25%, #ddd 0% 50%) 50% / 20px 20px" }}>
-      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.id}
+      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.part ?? layer.id}
         onPointerDown={event => {
           event.preventDefault();
           setSelected(layer.id);
