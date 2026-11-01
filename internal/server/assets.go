@@ -26,8 +26,8 @@ const maxAssets = 64
 var validAssetID = regexp.MustCompile("^[a-f0-9]{32}$")
 
 type assetInfo struct {
-	ID  string `json:"id"`
-	URL string `json:"url"`
+	ID   string `json:"id"`
+	URL  string `json:"url"`
 	Name string `json:"name,omitempty"`
 }
 
@@ -53,7 +53,9 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			id := name[:len(name)-len(ext)]
 			if validAssetID.MatchString(id) && (ext == ".png" || ext == ".gif") {
 				displayName := id + ext
-				if data, readErr := os.ReadFile(filepath.Join(root, id+".name")); readErr == nil { displayName = string(data) }
+				if data, readErr := os.ReadFile(filepath.Join(root, id+".name")); readErr == nil {
+					displayName = string(data)
+				}
 				items = append(items, assetInfo{ID: id, URL: "/api/v1/assets/" + id, Name: displayName})
 			}
 		}
@@ -99,7 +101,8 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 		for _, entry := range entries {
 			if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") {
 				count++
-			} }
+			}
+		}
 		if count >= maxAssets {
 			http.Error(w, "asset limit reached", 400)
 			return
