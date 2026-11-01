@@ -18,6 +18,9 @@ export const rows = [
   ["Ctrl", "Win", "Alt", "Space", "Right Alt", "Right Win", "Menu", "Right Ctrl"]
 ];
 
+export const keyUnits = (key: string) => key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1;
+const keyUnitPixels = 42;
+
 const aliases: Record<string, string> = {
   "Right Ctrl": "Ctrl", "Right Alt": "Alt", "Right Win": "Win",
   "Left Win": "Win", "Right Shift": "Shift"
@@ -36,7 +39,7 @@ export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {
     {rows.map((row, index) => layout === "custom" && !row.some(key => shown.has(key)) ? null : <div className="keyboard-row" key={index}>
       {row.filter(key => layout !== "custom" || shown.has(key)).map(key => <span key={key}
         className={`layout-key ${active.has(key) ? "is-pressed" : ""} ${analog[key] !== undefined ? "is-analog" : ""}`}
-        style={{ "--analog-depth": `${Math.round((analog[key] ?? 0) * 100)}%`, "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((keyWidths[key] ?? 100) / 100), minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
+        style={{ "--analog-depth": `${Math.round((analog[key] ?? 0) * 100)}%`, "--key-grow": keyUnits(key) * ((keyWidths[key] ?? 100) / 100), flex: `0 0 ${keyUnitPixels * keyUnits(key) * ((keyWidths[key] ?? 100) / 100)}px`, boxSizing: "border-box", minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
       >{key}</span>)}
     </div>)}
   </div>;
