@@ -24,19 +24,17 @@ export function AvatarSetup({ value, onChange }: { value?: ReactiveScene; onChan
   const selected = mapping[pose] ?? "";
   function apply() {
     if (!mapping.idle) { setStatus("Choose an idle image first."); return; }
-    const layers = poses.filter(p => p.trigger && mapping[p.key]).map(p => ({
-      id: `avatar-${p.key}`, idle: mapping.idle!, active: mapping[p.key],
-      trigger: p.trigger, x: 100, y: 40, width: 320, height: 320,
-    }));
-    // A single base layer ensures idle is visible when no input is pressed.
-    const base = { id: "avatar-base", idle: mapping.idle, x: 100, y: 40, width: 320, height: 320 };
-    // The advanced editor remains available for fine-tuning.
-    onChange({ ...value, hideDefault: true, layers: [base, ...layers] });
+    const pressed = poses.find(p => p.trigger && mapping[p.key]);
+    // Current runtime supports one active pose per layer. Avoid stacking opaque idle images.
+    onChange({ ...value, hideDefault: true, layers: [{
+      id: "avatar-main", idle: mapping.idle, active: pressed ? mapping[pressed.key] : undefined,
+      trigger: pressed?.trigger, x: 100, y: 40, width: 320, height: 320,
+    }] });
     setStatus("Avatar configured. Save profiles to apply it to OBS.");
   }
   return <section className="avatar-setup">
     <h2>Avatar setup</h2>
-    <p>Choose your character poses, preview them, then save. For advanced animation frames and positioning, use the advanced scene editor below.</p>
+    <p>Choose an idle pose and one active pose (left, right, or both buttons), preview them, then save. Multiple independent poses are not supported by the current scene runtime.</p>
     <button type="button" onClick={() => void refresh().then(() => setStatus("Assets refreshed")).catch(() => setStatus("Unable to refresh assets"))}>Refresh uploaded images</button>
     {!assets.length && <p>Upload your PNG images in Custom animation assets below, then refresh here.</p>}
     <div className="profile-actions">{poses.map(p => <button type="button" key={p.key} aria-pressed={pose === p.key} onClick={() => setPose(p.key)}>{p.label}</button>)}</div>
