@@ -46,7 +46,7 @@ func Run(ctx context.Context, emit func([]Sample)) error {
 	defer ticker.Stop()
 	previous := map[string]float32{}
 	var missingDeviceSince time.Time
-	var lastDiscoveryCount int32 = int32(result)
+	lastDiscoveryCount := int32(result)
 	for {
 		select {
 		case <-ctx.Done():
