@@ -30,6 +30,34 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     } catch (error) { setUploadStatus(error instanceof Error ? error.message : "Upload failed"); }
     return undefined;
   }
+  async function importPack(file: File) {
+    setUploadStatus("Importing avatar pack…");
+    try {
+      const response = await fetch("/api/v1/avatar-pack", { method: "POST", headers: { "Content-Type": "application/zip" }, body: file });
+      if (!response.ok) throw new Error(await response.text());
+      const imported = await response.json() as { name: string; part: string; id: string }[];
+      if (!imported.length) throw new Error("No recognized component images. Use body/, face/, left_hand/, right_hand/, keyboard/.");
+      setAssets(previous => [...previous, ...imported.map(item => ({ id: item.id, url: `/api/v1/assets/${item.id}`, name: item.name }))]);
+      const layers = [...scene.layers];
+      for (const part of ["body", "face", "left-hand", "right-hand", "keyboard"]) {
+        const sprites = imported.filter(item => item.part === part);
+        if (!sprites.length) continue;
+        const idle = sprites.find(item => /idle|neutral/i.test(item.name)) ?? sprites[0];
+        const active = sprites.find(item => /press|active|happy/i.test(item.name));
+        const existing = layers.findIndex(layer => layer.part === part);
+        const base: ReactiveLayer = existing >= 0 ? layers[existing] : {
+          id: `pack-${part}-${Date.now().toString(36)}`, part, idle: idle.id,
+          x: 100, y: 100, width: 200, height: 200
+        };
+        const layer: ReactiveLayer = { ...base, idle: idle.id, active: active?.id,
+          trigger: base.trigger ?? (part === "left-hand" ? "MouseLeft" : part === "right-hand" ? "MouseRight" : undefined) };
+        if (existing >= 0) layers[existing] = layer;
+        else if (layers.length < 24) layers.push(layer);
+      }
+      onChange({ ...scene, layers });
+      setUploadStatus(`Imported ${imported.length} sprites. Review component positioning and save your profile.`);
+    } catch (error) { setUploadStatus(error instanceof Error ? error.message : "ZIP import failed"); }
+  }
   const scene = value ?? { layers: [] };
   useEffect(() => {
     void fetch("/api/v1/assets").then(response => response.ok ? response.json() as Promise<Asset[]> : []).then(setAssets).catch(() => {});
@@ -73,6 +101,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   
   return <section className="reactive-editor">
     <h2>Reactive scene editor</h2>
+    <label>Import avatar ZIP <input type="file" accept=".zip,application/zip" onChange={event => { const file = event.target.files?.[0]; if (file) void importPack(file); event.target.value = ""; }} /></label>
     <p>Use uploaded assets to create independent idle and pressed image layers. Save profiles to publish changes to OBS.</p>
     <label><input type="checkbox" checked={scene.hideDefault ?? false} onChange={event => onChange({ ...scene, hideDefault: event.target.checked })} /> Hide standard keyboard and mouse overlay</label>
     <button type="button" onClick={() => add()} disabled={scene.layers.length >= 24}>Add image layer</button>
