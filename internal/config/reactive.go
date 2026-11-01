@@ -23,17 +23,17 @@ type ReactiveFrame struct {
 
 type ReactiveLayer struct {
 	KeyPressed    map[string]string `json:"keyPressed,omitempty"`
-	PressFrames   []ReactiveFrame `json:"pressFrames,omitempty"`
-	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
-	ID            string          `json:"id"`
-	Part          string          `json:"part,omitempty"`
-	Idle          string          `json:"idle"`
-	Active        string          `json:"active,omitempty"`
-	Trigger       string          `json:"trigger,omitempty"`
-	X             int             `json:"x"`
-	Y             int             `json:"y"`
-	Width         int             `json:"width"`
-	Height        int             `json:"height"`
+	PressFrames   []ReactiveFrame   `json:"pressFrames,omitempty"`
+	ReleaseFrames []ReactiveFrame   `json:"releaseFrames,omitempty"`
+	ID            string            `json:"id"`
+	Part          string            `json:"part,omitempty"`
+	Idle          string            `json:"idle"`
+	Active        string            `json:"active,omitempty"`
+	Trigger       string            `json:"trigger,omitempty"`
+	X             int               `json:"x"`
+	Y             int               `json:"y"`
+	Width         int               `json:"width"`
+	Height        int               `json:"height"`
 }
 
 func (s ReactiveScene) Validate() error {
