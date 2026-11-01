@@ -13,6 +13,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   const [preview, setPreview] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [advanced, setAdvanced] = useState(false);
+  const [animationPreview, setAnimationPreview] = useState<{ layerId: string; phase: "pressFrames" | "releaseFrames"; index: number } | null>(null);
   async function uploadPart(file: File, field: "idle" | "active" | "pressFrames" | "releaseFrames", previousFrames?: ReactiveFrame[]) {
     if (!current) return;
     if (file.size > 4 * 1024 * 1024) { setUploadStatus("Image must be under 4 MB"); return; }
@@ -72,6 +73,15 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     setSelected(id);
   }
   const current = scene.layers.find(layer => layer.id === selected);
+  useEffect(() => {
+    if (!animationPreview) return;
+    const layer = scene.layers.find(item => item.id === animationPreview.layerId);
+    const frames = layer?.[animationPreview.phase] ?? [];
+    if (!frames.length) { setAnimationPreview(null); return; }
+    const duration = frames[animationPreview.index]?.duration ?? 100;
+    const timer = window.setTimeout(() => setAnimationPreview(previous => previous && previous.index + 1 < frames.length ? { ...previous, index: previous.index + 1 } : null), duration);
+    return () => window.clearTimeout(timer);
+  }, [animationPreview, value]);
   function editFrames(field: "pressFrames" | "releaseFrames", frames: ReactiveFrame[]) {
     if (current) update(current.id, { [field]: frames });
   }
@@ -80,6 +90,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     const frames = current[field] ?? [];
     return <fieldset><legend>{field === "pressFrames" ? "Press animation" : "Release animation"}</legend>
       <label>Add frames <input type="file" multiple accept="image/png,image/gif" onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void (async () => { let frames = current[field] ?? []; for (const file of files) { const next = await uploadPart(file, field, frames); if (next) frames = next; } })(); }} /></label>
+      <button type="button" disabled={!frames.length} onClick={() => setAnimationPreview({ layerId: current.id, phase: field, index: 0 })}>Play {field === "pressFrames" ? "press" : "release"} frames</button>
       {frames.map((frame, index) => <div key={`${field}-${index}`} className="profile-actions">
         <img src={`/api/v1/assets/${frame.asset}`} alt={`Frame ${index + 1}`} width={48} height={48} style={{ objectFit: "contain" }} />
         <span>{assets.find(asset => asset.id === frame.asset)?.name ?? `Frame ${index + 1}`}</span>
@@ -111,7 +122,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     <label><input type="checkbox" checked={preview} onChange={event => setPreview(event.target.checked)} /> Preview input states</label>
     {preview && <div className="profile-actions">{["MouseLeft", "MouseRight", "Scan_1E", "Scan_20", "Space"].map(code => <button type="button" key={code} aria-pressed={held.includes(code)} onClick={() => setHeld(previous => previous.includes(code) ? previous.filter(item => item !== code) : [...previous, code])}>{code}</button>)}<button type="button" onClick={() => setHeld([])}>Release all</button></div>}
     <div style={{ position: "relative", width: 600, height: 400, maxWidth: "100%", overflow: "hidden", background: "repeating-conic-gradient(#aaa 0% 25%, #ddd 0% 50%) 50% / 20px 20px" }}>
-      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.part ?? layer.id}
+      {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${animationPreview?.layerId === layer.id ? (layer[animationPreview.phase]?.[animationPreview.index]?.asset ?? layer.idle) : layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.part ?? layer.id}
         onPointerDown={event => {
           event.preventDefault();
           setSelected(layer.id);
