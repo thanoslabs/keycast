@@ -3,6 +3,7 @@ import { fpsKeys, parseLayout, rows, type Layout } from "./layouts";
 import { PlacementEditor, defaultPlacement } from "./placement";
 import { VisualKeyEditor } from "./visual-key-editor";
 import { ReactiveSceneEditor } from "./reactive-editor";
+import { AvatarSetup } from "./avatar-setup";
 import { themePresets, type ThemePreset } from "./themes";
 
 export type Placement = { keyboardX: number; keyboardY: number; mouseX: number; mouseY: number; keyboardScale?: number; mouseScale?: number };
@@ -292,6 +293,7 @@ export function SettingsDashboard() {
         }}>Reset selected key</button>
       </div>}
       {selected !== "default" && <PlacementEditor value={placement} onChange={next => edit({ placement: next })} />}
+      {selected !== "default" && <AvatarSetup value={profile?.reactiveScene} onChange={reactiveScene => edit({ reactiveScene })} />}
       {selected !== "default" && <ReactiveSceneEditor value={profile?.reactiveScene} onChange={reactiveScene => edit({ reactiveScene })} />}
       <button type="button" onClick={() => void save()}>Save profiles</button>
       <span role="status">{status}</span>
