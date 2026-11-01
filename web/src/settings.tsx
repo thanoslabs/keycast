@@ -232,7 +232,7 @@ export function SettingsDashboard() {
       {selected !== "default" && layout === "custom" && <fieldset className="key-customization"><legend>Visible keys</legend><div className="visible-key-grid">{[...new Set(rows.flat())].map(key => <label key={key}><input type="checkbox" checked={(profile?.visibleKeys ?? fpsKeys).includes(key)} onChange={event => { const current = profile?.visibleKeys ?? fpsKeys; edit({ visibleKeys: event.target.checked ? [...current, key] : current.filter(value => value !== key) }); }} />{key}</label>)}</div><button type="button" onClick={() => edit({ visibleKeys: [...fpsKeys] })}>Reset to FPS preset</button></fieldset>}
       {selected !== "default" && (layout === "full" || layout === "custom") && <div className="key-customization">
         <h2>Visual keyboard editor</h2>
-        <VisualKeyEditor selected={selectedKey} onSelect={setSelectedKey}
+        <VisualKeyEditor selected={selectedKey} onSelect={setSelectedKey} visibleKeys={layout === "custom" ? (profile?.visibleKeys ?? fpsKeys) : undefined}
           widths={profile?.keyWidths} heights={profile?.keyHeights} offsets={profile?.keyOffsets}
           onOffsetsChange={next => edit({ keyOffsets: next })}
           onWidthsChange={next => edit({ keyWidths: next })}

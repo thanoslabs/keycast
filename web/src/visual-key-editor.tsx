@@ -1,9 +1,10 @@
 import { useRef, useState, type CSSProperties, type KeyboardEvent, type PointerEvent } from "react";
-import { rows } from "./layouts";
+import { keyUnits, rows } from "./layouts";
 
 type Offset = { x: number; y: number };
 type Props = {
   selected: string;
+  visibleKeys?: string[];
   onSelect: (key: string) => void;
   widths?: Record<string, number>;
   heights?: Record<string, number>;
@@ -16,7 +17,7 @@ const clamp = (value: number) => Math.max(-300, Math.min(300, value));
 const size = (value: number) => Math.max(50, Math.min(300, value));
 export const snap = (value: number, grid: number) => Math.round(value / grid) * grid;
 
-export function VisualKeyEditor({ selected, onSelect, widths = {}, heights = {}, offsets = {}, onOffsetsChange, onWidthsChange, onHeightsChange }: Props) {
+export function VisualKeyEditor({ selected, onSelect, visibleKeys, widths = {}, heights = {}, offsets = {}, onOffsetsChange, onWidthsChange, onHeightsChange }: Props) {
   const drag = useRef<{ key: string; x: number; y: number; origin: Offset; offsets: Record<string, Offset>; mode: "move" | "width" | "height"; originSize: number; originalSizes: Record<string, number> } | null>(null);
   const [grid, setGrid] = useState(8);
   const [snapping, setSnapping] = useState(true);
@@ -101,7 +102,10 @@ export function VisualKeyEditor({ selected, onSelect, widths = {}, heights = {},
           onPointerCancel={end}
           onKeyDown={event => nudge(event, key)}
           style={{
-            "--key-grow": (key === "Space" ? 5 : ["Shift", "Right Shift", "Enter", "Backspace"].includes(key) ? 2 : 1) * ((widths[key] ?? 100) / 100),
+            "--key-grow": keyUnits(key) * ((widths[key] ?? 100) / 100),
+            flex: `0 0 ${42 * keyUnits(key) * ((widths[key] ?? 100) / 100)}px`,
+            boxSizing: "border-box",
+            visibility: visibleKeys && !visibleKeys.includes(key) ? "hidden" : "visible",
             minHeight: `${35 * ((heights[key] ?? 100) / 100)}px`,
             transform: `translate(${offsets[key]?.x ?? 0}px, ${offsets[key]?.y ?? 0}px)`
           } as CSSProperties}>{key}
