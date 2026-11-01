@@ -96,7 +96,9 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			return
 		}
 		count := 0
-		for _, entry := range entries { if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") { count++ } }
+		for _, entry := range entries { if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") {
+				count++
+			} }
 		if count >= maxAssets {
 			http.Error(w, "asset limit reached", 400)
 			return
@@ -138,10 +140,16 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			return
 		}
 		rawName, decodeErr := url.QueryUnescape(r.Header.Get("X-Asset-Name"))
-		if decodeErr != nil { rawName = "" }
+		if decodeErr != nil {
+			rawName = ""
+		}
 		name := filepath.Base(strings.ReplaceAll(rawName, "\\", "/"))
-		if name == "." || name == "" { name = id + ext }
-		if len(name) > 128 { name = name[:128] }
+		if name == "." || name == "" {
+			name = id + ext
+		}
+		if len(name) > 128 {
+			name = name[:128]
+		}
 		_ = os.WriteFile(filepath.Join(root, id+".name"), []byte(name), 0600)
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
