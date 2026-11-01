@@ -57,16 +57,16 @@ func Run(ctx context.Context, emit func([]Sample)) error {
 					missingDeviceSince = time.Now()
 				}
 				if time.Since(missingDeviceSince) > 30*time.Second {
-				    return fmt.Errorf("Wooting analog device not detected after 30 seconds (SDK -1999); check SDK/plugin installation and USB connection")
+					return fmt.Errorf("Wooting analog device not detected after 30 seconds (SDK -1999); check SDK/plugin installation and USB connection")
 				}
 				// Clear any previously reported travel while the device is unavailable.
 				if len(previous) > 0 {
-				    released := make([]Sample, 0, len(previous))
-				    for code := range previous {
+					released := make([]Sample, 0, len(previous))
+					for code := range previous {
 						released = append(released, Sample{Code: code, Depth: 0})
 					}
-				    emit(released)
-				    previous = map[string]float32{}
+					emit(released)
+					previous = map[string]float32{}
 				}
 				continue
 			}
