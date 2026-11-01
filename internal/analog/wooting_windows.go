@@ -5,8 +5,8 @@ package analog
 import (
 	"context"
 	"fmt"
-	"math"
 	"log"
+	"math"
 	"syscall"
 	"time"
 	"unsafe"
@@ -36,7 +36,8 @@ func Run(ctx context.Context, emit func([]Sample)) error {
 		return fmt.Errorf("Wooting Analog SDK initialization failed: %d", int32(result))
 	}
 	defer closeSDK.Call()
-	log.Printf("Wooting SDK initialized: discovered_devices=%d", int32(result))
+	initialDeviceCount := int32(result)
+	log.Printf("Wooting SDK initialized: discovered_devices=%d", initialDeviceCount)
 	// ScanCode1 maps to Keycast's existing Scan_XX labels.
 	result, _, _ = mode.Call(1)
 	if int32(result) < 0 {
@@ -46,7 +47,6 @@ func Run(ctx context.Context, emit func([]Sample)) error {
 	defer ticker.Stop()
 	previous := map[string]float32{}
 	var missingDeviceSince time.Time
-	lastDiscoveryCount := int32(result)
 	for {
 		select {
 		case <-ctx.Done():
@@ -60,7 +60,7 @@ func Run(ctx context.Context, emit func([]Sample)) error {
 					missingDeviceSince = time.Now()
 				}
 				if time.Since(missingDeviceSince) > 30*time.Second {
-					return fmt.Errorf("Wooting analog device not detected after 30 seconds (SDK -1999; initialization discovered %d device(s)); verify the Wooting Analog SDK plugin and DLL version", lastDiscoveryCount)
+					return fmt.Errorf("Wooting analog device not detected after 30 seconds (SDK -1999; initialization discovered %d device(s)); verify the Wooting Analog SDK plugin and DLL version", initialDeviceCount)
 				}
 				// Clear any previously reported travel while the device is unavailable.
 				if len(previous) > 0 {
