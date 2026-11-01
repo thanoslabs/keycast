@@ -37,9 +37,9 @@ export function KeyboardLayout({ layout, pressed, keyWidths = {}, keyHeights = {
   const shown = new Set(visibleKeys);
   return <div className="full-keyboard" aria-label="Full keyboard layout">
     {rows.map((row, index) => layout === "custom" && !row.some(key => shown.has(key)) ? null : <div className="keyboard-row" key={index}>
-      {row.filter(key => layout !== "custom" || shown.has(key)).map(key => <span key={key}
+      {row.map(key => <span key={key}
         className={`layout-key ${active.has(key) ? "is-pressed" : ""} ${analog[key] !== undefined ? "is-analog" : ""}`}
-        style={{ "--analog-depth": `${Math.round((analog[key] ?? 0) * 100)}%`, "--key-grow": keyUnits(key) * ((keyWidths[key] ?? 100) / 100), flex: `0 0 ${keyUnitPixels * keyUnits(key) * ((keyWidths[key] ?? 100) / 100)}px`, boxSizing: "border-box", minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
+        style={{ "--analog-depth": `${Math.round((analog[key] ?? 0) * 100)}%`, "--key-grow": keyUnits(key) * ((keyWidths[key] ?? 100) / 100), flex: `0 0 ${keyUnitPixels * keyUnits(key) * ((keyWidths[key] ?? 100) / 100)}px`, boxSizing: "border-box", visibility: layout === "custom" && !shown.has(key) ? "hidden" : "visible", minHeight: `${35 * ((keyHeights[key] ?? 100) / 100)}px`, transform: `translate(${keyOffsets[key]?.x ?? 0}px, ${keyOffsets[key]?.y ?? 0}px)` } as CSSProperties}
       >{key}</span>)}
     </div>)}
   </div>;
