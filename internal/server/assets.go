@@ -11,6 +11,7 @@ import (
 	_ "image/png"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -136,7 +137,9 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 			http.Error(w, "storage unavailable", 500)
 			return
 		}
-		name := filepath.Base(r.Header.Get("X-Asset-Name"))
+		rawName, decodeErr := url.QueryUnescape(r.Header.Get("X-Asset-Name"))
+		if decodeErr != nil { rawName = "" }
+		name := filepath.Base(strings.ReplaceAll(rawName, "\\", "/"))
 		if name == "." || name == "" { name = id + ext }
 		if len(name) > 128 { name = name[:128] }
 		_ = os.WriteFile(filepath.Join(root, id+".name"), []byte(name), 0600)
