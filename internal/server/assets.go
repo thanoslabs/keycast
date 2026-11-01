@@ -1,6 +1,7 @@
 package server
 
 import (
+	"archive/zip"
 	"bytes"
 	"crypto/rand"
 	"encoding/hex"
@@ -158,6 +159,108 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		_ = json.NewEncoder(w).Encode(assetInfo{ID: id, URL: "/api/v1/assets/" + id, Name: name})
+	})
+	mux.HandleFunc("POST /api/v1/avatar-pack", func(w http.ResponseWriter, r *http.Request) {
+		if !validOrigin(r.Header.Get("Origin"), r.Host) {
+			http.Error(w, "invalid origin", http.StatusForbidden)
+			return
+		}
+		const maxPackBytes = 16 << 20
+		data, err := io.ReadAll(io.LimitReader(r.Body, maxPackBytes+1))
+		if err != nil || len(data) > maxPackBytes {
+			http.Error(w, "avatar pack too large", 400)
+			return
+		}
+		archive, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
+		if err != nil {
+			http.Error(w, "invalid ZIP", 400)
+			return
+		}
+		entries, err := os.ReadDir(root)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			http.Error(w, "storage unavailable", 500)
+			return
+		}
+		count := 0
+		for _, entry := range entries {
+			if strings.HasSuffix(entry.Name(), ".png") || strings.HasSuffix(entry.Name(), ".gif") {
+				count++
+			}
+		}
+		type importedSprite struct {
+			Name string `json:"name"`
+			Part string `json:"part"`
+			ID string `json:"id"`
+		}
+		results := make([]importedSprite, 0)
+		if err := os.MkdirAll(root, 0700); err != nil {
+			http.Error(w, "storage unavailable", 500)
+			return
+		}
+		for _, file := range archive.File {
+			if file.FileInfo().IsDir() {
+				continue
+			}
+			path := strings.ReplaceAll(file.Name, "\\", "/")
+			parts := strings.Split(path, "/")
+			if len(parts) != 2 || parts[0] == ".." || parts[1] == ".." {
+				continue
+			}
+			part := strings.ReplaceAll(parts[0], "_", "-")
+			switch part {
+			case "body", "face", "left-hand", "right-hand", "keyboard":
+			default:
+				continue
+			}
+			name := parts[1]
+			ext := strings.ToLower(filepath.Ext(name))
+			if ext != ".png" && ext != ".gif" {
+				continue
+			}
+			if count+len(results) >= maxAssets {
+				http.Error(w, "asset limit reached", 400)
+				return
+			}
+			if file.UncompressedSize64 > maxAssetBytes {
+				http.Error(w, "image too large", 400)
+				return
+			}
+			reader, err := file.Open()
+			if err != nil {
+				http.Error(w, "invalid image", 400)
+				return
+			}
+			content, readErr := io.ReadAll(io.LimitReader(reader, maxAssetBytes+1))
+			_ = reader.Close()
+			if readErr != nil || len(content) > maxAssetBytes || len(content) == 0 {
+				http.Error(w, "invalid image size", 400)
+				return
+			}
+			mime := http.DetectContentType(content)
+			if (ext == ".png" && mime != "image/png") || (ext == ".gif" && mime != "image/gif") {
+				http.Error(w, "image type mismatch", 400)
+				return
+			}
+			cfg, _, err := image.DecodeConfig(bytes.NewReader(content))
+			if err != nil || cfg.Width < 1 || cfg.Height < 1 || cfg.Width > 4096 || cfg.Height > 4096 {
+				http.Error(w, "invalid image", 400)
+				return
+			}
+			var idBytes [16]byte
+			if _, err := rand.Read(idBytes[:]); err != nil {
+				http.Error(w, "storage unavailable", 500)
+				return
+			}
+			id := hex.EncodeToString(idBytes[:])
+			if err := os.WriteFile(filepath.Join(root, id+ext), content, 0600); err != nil {
+				http.Error(w, "storage unavailable", 500)
+				return
+			}
+			_ = os.WriteFile(filepath.Join(root, id+".name"), []byte(name), 0600)
+			results = append(results, importedSprite{Name: name, Part: part, ID: id})
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(results)
 	})
 	mux.HandleFunc("GET /api/v1/assets/{id}", func(w http.ResponseWriter, r *http.Request) {
 		id := r.PathValue("id")
