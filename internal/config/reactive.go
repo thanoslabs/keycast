@@ -25,6 +25,7 @@ type ReactiveLayer struct {
 	PressFrames   []ReactiveFrame `json:"pressFrames,omitempty"`
 	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
 	ID            string          `json:"id"`
+	Part          string          `json:"part,omitempty"`
 	Idle          string          `json:"idle"`
 	Active        string          `json:"active,omitempty"`
 	Trigger       string          `json:"trigger,omitempty"`
