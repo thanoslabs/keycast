@@ -79,6 +79,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
         else if (layers.length < 24) layers.push(layer);
       }
       onChange({ ...scene, layers });
+      setSelected(layers.find(layer => layer.part === "keyboard")?.id ?? layers[0]?.id ?? "");
       setUploadStatus(`Imported ${imported.length} sprites. Review component positioning and save your profile.`);
     } catch (error) { setUploadStatus(error instanceof Error ? error.message : "ZIP import failed"); }
   }
