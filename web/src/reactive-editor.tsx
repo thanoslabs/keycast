@@ -40,17 +40,36 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
       if (!imported.length) throw new Error("No recognized component images. Use body/, face/, left_hand/, right_hand/, keyboard/.");
       setAssets(previous => [...previous, ...imported.map(item => ({ id: item.id, url: `/api/v1/assets/${item.id}`, name: item.name }))]);
       const layers = [...scene.layers];
+      const stem = (name: string) => name.replace(/\\.(png|gif)$/i, "").toLowerCase().replace(/-/g, "_");
       for (const part of ["body", "face", "left-hand", "right-hand", "keyboard"]) {
         const sprites = imported.filter(item => item.part === part);
         if (!sprites.length) continue;
-        const idle = sprites.find(item => /idle|neutral/i.test(item.name)) ?? sprites[0];
-        const active = sprites.find(item => /press|active|happy/i.test(item.name));
+        const prefix = part.replace(/-/g, "_");
+        const suffix = (name: string) => stem(name).replace(new RegExp(`^${prefix}_`), "");
+        const idle = sprites.find(item => ["idle", "base"].includes(suffix(item.name)));
+        if (!idle) { setUploadStatus(`Missing ${prefix}_idle.png (or ${prefix}_base.png) in avatar pack`); return; }
+        const active = sprites.find(item => suffix(item.name) === "pressed");
+        const released = sprites.find(item => suffix(item.name) === "released");
+        const frames = (phase: "press" | "release") => sprites
+          .map(item => ({ item, match: suffix(item.name).match(new RegExp(`^${phase}_(\\d+)$`)) }))
+          .filter((entry): entry is { item: typeof sprites[number]; match: RegExpMatchArray } => entry.match !== null)
+          .sort((left, right) => Number(left.match[1]) - Number(right.match[1]))
+          .slice(0, 32).map(entry => ({ asset: entry.item.id, duration: 100 }));
+        const keyPressed: Record<string, string> = {};
+        if (part === "keyboard") for (const item of sprites) {
+          const match = item.name.replace(/\\.(png|gif)$/i, "").match(/^(?:keyboard_)?([A-Za-z0-9_]+)_PRESSED$/i);
+          if (match && !["keyboard", "base"].includes(match[1].toLowerCase())) keyPressed[match[1]] = item.id;
+        }
         const existing = layers.findIndex(layer => layer.part === part);
         const base: ReactiveLayer = existing >= 0 ? layers[existing] : {
           id: `pack-${part}-${Date.now().toString(36)}`, part, idle: idle.id,
           x: 100, y: 100, width: 200, height: 200
         };
-        const layer: ReactiveLayer = { ...base, idle: idle.id, active: active?.id,
+        const layer: ReactiveLayer = { ...base, idle: idle.id,
+          active: part === "keyboard" ? undefined : active?.id,
+          pressFrames: frames("press"),
+          releaseFrames: frames("release").length ? frames("release") : released ? [{ asset: released.id, duration: 100 }] : [],
+          keyPressed: part === "keyboard" ? keyPressed : undefined,
           trigger: base.trigger ?? (part === "left-hand" ? "MouseLeft" : part === "right-hand" ? "MouseRight" : undefined) };
         if (existing >= 0) layers[existing] = layer;
         else if (layers.length < 24) layers.push(layer);
@@ -112,6 +131,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   
   return <section className="reactive-editor">
     <h2>Reactive scene editor</h2>
+    <p>Sprite naming: COMPONENT_idle.png, COMPONENT_pressed.png, COMPONENT_released.png, COMPONENT_press_01.png, COMPONENT_release_01.png. Keyboard: keyboard_base.png and KEYNAME_PRESSED.png in keyboard/. Key names must match input event codes (for example Space or Scan_1E).</p>
     <label>Import avatar ZIP <input type="file" accept=".zip,application/zip" onChange={event => { const file = event.target.files?.[0]; if (file) void importPack(file); event.target.value = ""; }} /></label>
     <p>Use uploaded assets to create independent idle and pressed image layers. Save profiles to publish changes to OBS.</p>
     <label><input type="checkbox" checked={scene.hideDefault ?? false} onChange={event => onChange({ ...scene, hideDefault: event.target.checked })} /> Hide standard keyboard and mouse overlay</label>

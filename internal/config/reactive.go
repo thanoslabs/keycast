@@ -22,17 +22,18 @@ type ReactiveFrame struct {
 }
 
 type ReactiveLayer struct {
-	PressFrames   []ReactiveFrame `json:"pressFrames,omitempty"`
-	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
-	ID            string          `json:"id"`
-	Part          string          `json:"part,omitempty"`
-	Idle          string          `json:"idle"`
-	Active        string          `json:"active,omitempty"`
-	Trigger       string          `json:"trigger,omitempty"`
-	X             int             `json:"x"`
-	Y             int             `json:"y"`
-	Width         int             `json:"width"`
-	Height        int             `json:"height"`
+	KeyPressed    map[string]string `json:"keyPressed,omitempty"`
+	PressFrames   []ReactiveFrame   `json:"pressFrames,omitempty"`
+	ReleaseFrames []ReactiveFrame   `json:"releaseFrames,omitempty"`
+	ID            string            `json:"id"`
+	Part          string            `json:"part,omitempty"`
+	Idle          string            `json:"idle"`
+	Active        string            `json:"active,omitempty"`
+	Trigger       string            `json:"trigger,omitempty"`
+	X             int               `json:"x"`
+	Y             int               `json:"y"`
+	Width         int               `json:"width"`
+	Height        int               `json:"height"`
 }
 
 func (s ReactiveScene) Validate() error {
@@ -54,6 +55,14 @@ func (s ReactiveScene) Validate() error {
 		}
 		if !reactiveAssetID.MatchString(l.Idle) {
 			return fmt.Errorf("invalid idle asset for layer %q", l.ID)
+		}
+		if len(l.KeyPressed) > 64 {
+			return errors.New("too many keyboard key sprites")
+		}
+		for key, asset := range l.KeyPressed {
+			if l.Part != "keyboard" || !reactiveTriggerCode.MatchString(key) || !reactiveAssetID.MatchString(asset) {
+				return errors.New("invalid keyboard pressed sprite")
+			}
 		}
 		if l.Active != "" && !reactiveAssetID.MatchString(l.Active) {
 			return fmt.Errorf("invalid active asset for layer %q", l.ID)

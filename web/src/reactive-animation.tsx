@@ -39,6 +39,10 @@ export function AnimatedReactiveLayer({ layer, pressed }: { layer: ReactiveLayer
     const timer = window.setInterval(tick, 25);
     return () => window.clearInterval(timer);
   }, [active, layer.idle, layer.active, layer.pressFrames, layer.releaseFrames]);
-  return <img src={`/api/v1/assets/${frame}`} alt="" draggable={false}
-    style={{ position: "absolute", left: layer.x, top: layer.y, width: layer.width, height: layer.height, objectFit: "contain" }} />;
+  const style = { position: "absolute" as const, left: layer.x, top: layer.y, width: layer.width, height: layer.height, objectFit: "contain" as const };
+  return <>
+    <img src={`/api/v1/assets/${layer.part === "keyboard" ? layer.idle : frame}`} alt="" draggable={false} style={style} />
+    {layer.part === "keyboard" && Object.entries(layer.keyPressed ?? {}).filter(([key]) => pressed.has(key)).map(([key, asset]) =>
+      <img key={key} src={`/api/v1/assets/${asset}`} alt="" draggable={false} style={{ ...style, pointerEvents: "none" }} />)}
+  </>;
 }
