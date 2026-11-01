@@ -25,6 +25,7 @@ type ReactiveLayer struct {
 	PressFrames   []ReactiveFrame `json:"pressFrames,omitempty"`
 	ReleaseFrames []ReactiveFrame `json:"releaseFrames,omitempty"`
 	ID            string          `json:"id"`
+	Part          string          `json:"part,omitempty"`
 	Idle          string          `json:"idle"`
 	Active        string          `json:"active,omitempty"`
 	Trigger       string          `json:"trigger,omitempty"`
@@ -44,6 +45,13 @@ func (s ReactiveScene) Validate() error {
 			return fmt.Errorf("invalid reactive layer ID %q", l.ID)
 		}
 		seen[l.ID] = true
+		if l.Part != "" {
+			switch l.Part {
+			case "body", "face", "left-hand", "right-hand", "keyboard", "custom":
+			default:
+				return fmt.Errorf("invalid avatar part %q", l.Part)
+			}
+		}
 		if !reactiveAssetID.MatchString(l.Idle) {
 			return fmt.Errorf("invalid idle asset for layer %q", l.ID)
 		}
