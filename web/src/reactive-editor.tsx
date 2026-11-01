@@ -13,7 +13,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   const [preview, setPreview] = useState(false);
   const [uploadStatus, setUploadStatus] = useState("");
   const [advanced, setAdvanced] = useState(false);
-  async function uploadPart(file: File, field: "idle" | "active" | "pressFrames" | "releaseFrames") {
+  async function uploadPart(file: File, field: "idle" | "active" | "pressFrames" | "releaseFrames", previousFrames?: ReactiveFrame[]) {
     if (!current) return;
     if (file.size > 4 * 1024 * 1024) { setUploadStatus("Image must be under 4 MB"); return; }
     try {
@@ -22,10 +22,13 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
       const asset = await response.json() as Asset;
       setAssets(previous => [...previous, { ...asset, name: file.name }]);
       if (field === "pressFrames" || field === "releaseFrames") {
-        update(current.id, { [field]: [...(current[field] ?? []), { asset: asset.id, duration: 100 }].slice(0, 32) });
+        const frames = [...(previousFrames ?? current[field] ?? []), { asset: asset.id, duration: 100 }].slice(0, 32);
+        update(current.id, { [field]: frames });
+        return frames;
       } else update(current.id, { [field]: asset.id });
       setUploadStatus(`${file.name} assigned to ${current.part ?? "layer"}`);
     } catch (error) { setUploadStatus(error instanceof Error ? error.message : "Upload failed"); }
+    return undefined;
   }
   const scene = value ?? { layers: [] };
   useEffect(() => {
@@ -48,7 +51,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     if (!current) return null;
     const frames = current[field] ?? [];
     return <fieldset><legend>{field === "pressFrames" ? "Press animation" : "Release animation"}</legend>
-      <label>Add frames <input type="file" multiple accept="image/png,image/gif" onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void (async () => { for (const file of files) await uploadPart(file, field); })(); }} /></label>
+      <label>Add frames <input type="file" multiple accept="image/png,image/gif" onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void (async () => { let frames = current[field] ?? []; for (const file of files) { const next = await uploadPart(file, field, frames); if (next) frames = next; } })(); }} /></label>
       {frames.map((frame, index) => <div key={`${field}-${index}`} className="profile-actions">
         <img src={`/api/v1/assets/${frame.asset}`} alt={`Frame ${index + 1}`} width={48} height={48} style={{ objectFit: "contain" }} />
         <span>{assets.find(asset => asset.id === frame.asset)?.name ?? `Frame ${index + 1}`}</span>
