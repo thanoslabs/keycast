@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { ReactiveFrame, ReactiveLayer, ReactiveScene } from "./settings";
 import { triggerMatches } from "./reactive-triggers";
+import { keyboardNameMap, keyboardSpriteCode } from "./keyboard-sprite-names";
 
 type Asset = { id: string; url: string; name?: string };
 type Props = { value?: ReactiveScene; onChange: (scene: ReactiveScene) => void };
@@ -58,7 +59,10 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
         const keyPressed: Record<string, string> = {};
         if (part === "keyboard") for (const item of sprites) {
           const match = item.name.replace(/\\.(png|gif)$/i, "").match(/^(?:keyboard_)?([A-Za-z0-9_]+)_PRESSED$/i);
-          if (match && !["keyboard", "base"].includes(match[1].toLowerCase())) keyPressed[match[1]] = item.id;
+          if (match) {
+            const code = keyboardSpriteCode(match[1]);
+            if (code) keyPressed[code] = item.id;
+          }
         }
         const existing = layers.findIndex(layer => layer.part === part);
         const base: ReactiveLayer = existing >= 0 ? layers[existing] : {
@@ -131,6 +135,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   
   return <section className="reactive-editor">
     <h2>Reactive scene editor</h2>
+    <details><summary>Keyboard sprite name mapping</summary><p>Use KEYNAME_PRESSED.png in keyboard/. Names are converted to live input codes automatically.</p><table><thead><tr><th>Sprite name</th><th>Input code</th></tr></thead><tbody>{keyboardNameMap.map(([name, code]) => <tr key={name}><td>{name}_PRESSED.png</td><td><code>{code}</code></td></tr>)}</tbody></table><p>Explicit Scan_XX_PRESSED.png names are also supported.</p></details>
     <p>Sprite naming: COMPONENT_idle.png, COMPONENT_pressed.png, COMPONENT_released.png, COMPONENT_press_01.png, COMPONENT_release_01.png. Keyboard: keyboard_base.png and KEYNAME_PRESSED.png in keyboard/. Key names must match input event codes (for example Space or Scan_1E).</p>
     <label>Import avatar ZIP <input type="file" accept=".zip,application/zip" onChange={event => { const file = event.target.files?.[0]; if (file) void importPack(file); event.target.value = ""; }} /></label>
     <p>Use uploaded assets to create independent idle and pressed image layers. Save profiles to publish changes to OBS.</p>
