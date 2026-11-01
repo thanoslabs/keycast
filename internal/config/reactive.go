@@ -45,6 +45,13 @@ func (s ReactiveScene) Validate() error {
 			return fmt.Errorf("invalid reactive layer ID %q", l.ID)
 		}
 		seen[l.ID] = true
+		if l.Part != "" {
+			switch l.Part {
+			case "body", "face", "left-hand", "right-hand", "keyboard", "custom":
+			default:
+				return fmt.Errorf("invalid avatar part %q", l.Part)
+			}
+		}
 		if !reactiveAssetID.MatchString(l.Idle) {
 			return fmt.Errorf("invalid idle asset for layer %q", l.ID)
 		}
