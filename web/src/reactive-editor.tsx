@@ -41,7 +41,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
       if (!imported.length) throw new Error("No recognized component images. Use body/, face/, left_hand/, right_hand/, keyboard/.");
       setAssets(previous => [...previous, ...imported.map(item => ({ id: item.id, url: `/api/v1/assets/${item.id}`, name: item.name }))]);
       const layers = [...scene.layers];
-      const stem = (name: string) => name.replace(/\\.(png|gif)$/i, "").toLowerCase().replace(/-/g, "_");
+      const stem = (name: string) => name.replace(/\.(png|gif)$/i, "").toLowerCase().replace(/-/g, "_");
       for (const part of ["body", "face", "left-hand", "right-hand", "keyboard"]) {
         const sprites = imported.filter(item => item.part === part);
         if (!sprites.length) continue;
@@ -52,13 +52,13 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
         const active = sprites.find(item => suffix(item.name) === "pressed");
         const released = sprites.find(item => suffix(item.name) === "released");
         const frames = (phase: "press" | "release") => sprites
-          .map(item => ({ item, match: suffix(item.name).match(new RegExp(`^${phase}_(\\d+)$`)) }))
+          .map(item => ({ item, match: suffix(item.name).match(new RegExp(`^${phase}_(\d+)$`)) }))
           .filter((entry): entry is { item: typeof sprites[number]; match: RegExpMatchArray } => entry.match !== null)
           .sort((left, right) => Number(left.match[1]) - Number(right.match[1]))
           .slice(0, 32).map(entry => ({ asset: entry.item.id, duration: 100 }));
         const keyPressed: Record<string, string> = {};
         if (part === "keyboard") for (const item of sprites) {
-          const match = item.name.replace(/\\.(png|gif)$/i, "").match(/^(?:keyboard_)?([A-Za-z0-9_]+)_PRESSED$/i);
+          const match = item.name.replace(/\.(png|gif)$/i, "").match(/^(?:keyboard_)?([A-Za-z0-9_]+)_PRESSED$/i);
           if (match) {
             const code = keyboardSpriteCode(match[1]);
             if (code) keyPressed[code] = item.id;
