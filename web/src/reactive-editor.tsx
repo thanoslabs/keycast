@@ -17,10 +17,10 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
   function update(id: string, change: Partial<ReactiveLayer>) {
     onChange({ ...scene, layers: scene.layers.map(layer => layer.id === id ? { ...layer, ...change } : layer) });
   }
-  function add() {
+  function add(part = "custom") {
     if (!assets.length || scene.layers.length >= 24) return;
     const id = `layer-${Date.now().toString(36)}`;
-    onChange({ ...scene, layers: [...scene.layers, { id, idle: assets[0].id, x: 100, y: 100, width: 200, height: 200 }] });
+    onChange({ ...scene, layers: [...scene.layers, { id, part, idle: assets[0].id, x: 100, y: 100, width: 200, height: 200 }] });
     setSelected(id);
   }
   const current = scene.layers.find(layer => layer.id === selected);
@@ -29,7 +29,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
     <h2>Reactive scene editor</h2>
     <p>Use uploaded assets to create independent idle and pressed image layers. Save profiles to publish changes to OBS.</p>
     <label><input type="checkbox" checked={scene.hideDefault ?? false} onChange={event => onChange({ ...scene, hideDefault: event.target.checked })} /> Hide standard keyboard and mouse overlay</label>
-    <button type="button" onClick={add} disabled={!assets.length || scene.layers.length >= 24}>Add image layer</button>
+    <button type="button" onClick={() => add()} disabled={!assets.length || scene.layers.length >= 24}>Add image layer</button>
     {!assets.length && <p>Upload a PNG or GIF in the asset library below to get started.</p>}
     <div style={{ position: "relative", width: 600, height: 400, maxWidth: "100%", overflow: "hidden", background: "repeating-conic-gradient(#aaa 0% 25%, #ddd 0% 50%) 50% / 20px 20px" }}>
       {scene.layers.map(layer => <img key={layer.id} src={`/api/v1/assets/${layer.active && layer.trigger && triggerMatches(layer.trigger, new Set(held)) ? layer.active : layer.idle}`} alt={layer.id}
@@ -48,6 +48,7 @@ export function ReactiveSceneEditor({ value, onChange }: Props) {
         style={{ position: "absolute", left: layer.x, top: layer.y, width: layer.width, height: layer.height, objectFit: "contain", touchAction: "none", cursor: "move", outline: selected === layer.id ? "2px solid #6d53c5" : undefined }} />)}
     </div>
     {current && <div className="reactive-layer-controls">
+      <label>Part <select value={current.part ?? "custom"} onChange={event => update(current.id, { part: event.target.value })}>{["body", "face", "left-hand", "right-hand", "keyboard", "custom"].map(part => <option key={part} value={part}>{part}</option>)}</select></label>
       <label>Layer <select value={selected} onChange={event => setSelected(event.target.value)}>{scene.layers.map(layer => <option key={layer.id} value={layer.id}>{layer.id}</option>)}</select></label>
       <label>Idle image <select value={current.idle} onChange={event => update(current.id, { idle: event.target.value })}>{assets.map(asset => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)}</option>)}</select></label>
       <label>Pressed image <select value={current.active ?? ""} onChange={event => update(current.id, { active: event.target.value || undefined })}><option value="">None</option>{assets.map(asset => <option key={asset.id} value={asset.id}>{asset.id.slice(0, 8)}</option>)}</select></label>
