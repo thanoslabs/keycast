@@ -190,7 +190,7 @@ func assetRoutes(mux *http.ServeMux, store *config.Store) {
 		type importedSprite struct {
 			Name string `json:"name"`
 			Part string `json:"part"`
-			ID string `json:"id"`
+			ID   string `json:"id"`
 		}
 		results := make([]importedSprite, 0)
 		if err := os.MkdirAll(root, 0700); err != nil {
