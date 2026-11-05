@@ -14,8 +14,19 @@ if(WIN32)
   set_target_properties(keycast PROPERTIES OUTPUT_NAME "keycast")
 endif()
 
-# Cubism Native SDK is proprietary and is deliberately not bundled here.
-# M1 will add an optional, license-compliant SDK integration target.
+# Cubism Core is licensed separately. Require an explicitly supplied SDK root;
+# never download or commit the proprietary binaries.
+option(KEYCAST_WITH_CUBISM "Enable Cubism Native SDK integration" OFF)
+set(KEYCAST_CUBISM_SDK_ROOT "" CACHE PATH "Path to locally installed Cubism SDK for Native")
+if(KEYCAST_WITH_CUBISM)
+  if(NOT KEYCAST_CUBISM_SDK_ROOT OR NOT EXISTS "${KEYCAST_CUBISM_SDK_ROOT}/Core/include/Live2DCubismCore.h")
+    message(FATAL_ERROR "KEYCAST_WITH_CUBISM requires a Cubism SDK for Native root with Core/include/Live2DCubismCore.h")
+  endif()
+  # Core API availability is verified here. Runtime allocation and mesh drawing
+  # still require a platform adapter and compatible Core library selection.
+  target_include_directories(keycast PRIVATE "${KEYCAST_CUBISM_SDK_ROOT}/Core/include")
+  target_compile_definitions(keycast PRIVATE KEYCAST_CUBISM_HEADERS_AVAILABLE=1)
+endif()
 
 include(CTest)
 if(BUILD_TESTING)
