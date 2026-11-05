@@ -16,3 +16,11 @@ endif()
 
 # Cubism Native SDK is proprietary and is deliberately not bundled here.
 # M1 will add an optional, license-compliant SDK integration target.
+
+include(CTest)
+if(BUILD_TESTING)
+  add_executable(keycast-model-loader-test tests/model_loader_test.cpp)
+  target_include_directories(keycast-model-loader-test PRIVATE src)
+  target_link_libraries(keycast-model-loader-test PRIVATE nlohmann_json::nlohmann_json)
+  add_test(NAME model-manifest-validation COMMAND keycast-model-loader-test)
+endif()

@@ -14,3 +14,5 @@ jobs:
         run: cmake -S obs-plugin -B build/obs-plugin -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build
         run: cmake --build build/obs-plugin --verbose
+      - name: Test model manifest validation
+        run: ctest --test-dir build/obs-plugin --output-on-failure
