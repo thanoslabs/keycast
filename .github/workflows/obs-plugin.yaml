@@ -9,7 +9,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install OBS development libraries
-        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libobs-dev
+        run: sudo apt-get update && sudo apt-get install -y cmake ninja-build libobs-dev nlohmann-json3-dev
       - name: Configure
         run: cmake -S obs-plugin -B build/obs-plugin -G Ninja -DCMAKE_BUILD_TYPE=Release
       - name: Build
