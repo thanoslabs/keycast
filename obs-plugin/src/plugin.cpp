@@ -1,4 +1,5 @@
 #include <obs-module.h>
+#include "model_loader.hpp"
 #include <memory>
 #include <filesystem>
 #include <fstream>
@@ -18,6 +19,7 @@ struct KeycastSource {
     explicit KeycastSource(obs_source_t *s) : source(s) {}
     std::string model_path;
     bool model_found = false;
+    keycast::ModelManifest model;
 };
 
 const char *source_name(void *) { return "Keycast Live2D"; }
@@ -27,12 +29,17 @@ void source_update(void *data, obs_data_t *settings)
     auto *state = static_cast<KeycastSource *>(data);
     const char *path = obs_data_get_string(settings, "model_path");
     state->model_path = path ? path : "";
-    state->model_found = !state->model_path.empty() &&
-        std::filesystem::is_regular_file(std::filesystem::u8path(state->model_path));
-    if (!state->model_path.empty() && !state->model_found)
-        blog(LOG_WARNING, "[keycast] Model manifest not found: %s", state->model_path.c_str());
-    else if (state->model_found)
-        blog(LOG_INFO, "[keycast] Model manifest selected: %s (Cubism renderer not installed)", state->model_path.c_str());
+    state->model_found = false;
+    state->model = {};
+    if (state->model_path.empty()) return;
+    std::string error;
+    state->model_found = keycast::load_model_manifest(
+        std::filesystem::u8path(state->model_path), state->model, error);
+    if (!state->model_found)
+        blog(LOG_WARNING, "[keycast] Invalid Cubism model: %s", error.c_str());
+    else
+        blog(LOG_INFO, "[keycast] Validated Cubism model: %zu textures, %zu motions (rendering not yet available)",
+             state->model.textures.size(), state->model.motions.size());
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
