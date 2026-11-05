@@ -5,9 +5,10 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 find_package(libobs REQUIRED)
+find_package(nlohmann_json 3.10 REQUIRED)
 
 add_library(keycast MODULE src/plugin.cpp)
-target_link_libraries(keycast PRIVATE OBS::libobs)
+target_link_libraries(keycast PRIVATE OBS::libobs nlohmann_json::nlohmann_json)
 set_target_properties(keycast PROPERTIES PREFIX "")
 if(WIN32)
   set_target_properties(keycast PROPERTIES OUTPUT_NAME "keycast")
