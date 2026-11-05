@@ -1,5 +1,8 @@
 #include <obs-module.h>
 #include "model_loader.hpp"
+#include "cubism_backend.hpp"
+#include "live_penguin.hpp"
+#include "obs_render_state.hpp"
 #include <memory>
 #include <filesystem>
 #include <fstream>
@@ -20,6 +23,9 @@ struct KeycastSource {
     std::string model_path;
     bool model_found = false;
     keycast::ModelManifest model;
+    keycast::StagedCubismBackend runtime;
+    keycast::LivePenguin penguin;
+    keycast::ObsRenderState render_state;
 };
 
 const char *source_name(void *) { return "Keycast Live2D"; }
@@ -37,9 +43,10 @@ void source_update(void *data, obs_data_t *settings)
         std::filesystem::u8path(state->model_path), state->model, error);
     if (!state->model_found)
         blog(LOG_WARNING, "[keycast] Invalid Cubism model: %s", error.c_str());
-    else
-        blog(LOG_INFO, "[keycast] Validated Cubism model: %zu textures, %zu motions (rendering not yet available)",
-             state->model.textures.size(), state->model.motions.size());
+    else {
+        state->runtime.load(std::filesystem::u8path(state->model_path), error);
+        blog(LOG_INFO, "[keycast] Cubism assets validated; SDK rendering is not yet available");
+    }
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -54,14 +61,29 @@ void source_destroy(void *data)
     delete static_cast<KeycastSource *>(data);
 }
 
-void source_render(void *, gs_effect_t *)
+void source_tick(void *data, float seconds)
 {
-    // M0: intentionally renders nothing. M1 will render Cubism model textures
-    // using the OBS graphics context. No HTTP server or browser source.
+    auto *state = static_cast<KeycastSource *>(data);
+    if (state && state->model_found)
+        state->penguin.tick(seconds, state->runtime);
 }
 
-uint32_t source_width(void *) { return 1920; }
-uint32_t source_height(void *) { return 1080; }
+void source_render(void *data, gs_effect_t *)
+{
+    const auto *state = static_cast<KeycastSource *>(data);
+    if (!state || !state->runtime.ready()) return;
+    // A platform Cubism mesh renderer is still required. Do not draw a fake
+    // placeholder as though it were a functioning Cubism avatar.
+}
+
+uint32_t source_width(void *data) {
+    const auto *state = static_cast<KeycastSource *>(data);
+    return state ? state->render_state.width() : 612;
+}
+uint32_t source_height(void *data) {
+    const auto *state = static_cast<KeycastSource *>(data);
+    return state ? state->render_state.height() : 354;
+}
 
 obs_properties_t *source_properties(void *)
 {
@@ -82,6 +104,7 @@ bool obs_module_load(void)
     source_info.create = source_create;
     source_info.destroy = source_destroy;
     source_info.update = source_update;
+    source_info.video_tick = source_tick;
     source_info.video_render = source_render;
     source_info.get_width = source_width;
     source_info.get_height = source_height;
