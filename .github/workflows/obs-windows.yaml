@@ -1,0 +1,24 @@
+name: OBS Plugin Windows
+on:
+  pull_request:
+    paths:
+      - 'obs-plugin/**'
+      - '.github/workflows/obs-windows.yaml'
+  workflow_dispatch:
+jobs:
+  build-windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure dependency prerequisites
+        shell: pwsh
+        run: |
+          Write-Host "Windows OBS plugin build requires OBS SDK/libobs and nlohmann_json."
+          Write-Host "This workflow validates packaging prerequisites; it does not claim a working Cubism renderer."
+      - name: Validate packaging inputs
+        shell: pwsh
+        run: |
+          if (!(Test-Path obs-plugin/CMakeLists.txt)) { throw "Missing CMakeLists.txt" }
+          if (!(Test-Path obs-plugin/src/plugin.cpp)) { throw "Missing plugin source" }
+          if (!(Test-Path obs-plugin/src/cubism_runtime.hpp)) { throw "Missing Cubism runtime contract" }
+          Write-Host "Packaging inputs present. OBS SDK setup and runtime binary are still pending."
