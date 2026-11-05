@@ -2,6 +2,7 @@
 #include "model_loader.hpp"
 #include "cubism_backend.hpp"
 #include "live_penguin.hpp"
+#include "obs_render_state.hpp"
 #include <memory>
 #include <filesystem>
 #include <fstream>
@@ -24,6 +25,7 @@ struct KeycastSource {
     keycast::ModelManifest model;
     keycast::StagedCubismBackend runtime;
     keycast::LivePenguin penguin;
+    keycast::ObsRenderState render_state;
 };
 
 const char *source_name(void *) { return "Keycast Live2D"; }
@@ -66,14 +68,22 @@ void source_tick(void *data, float seconds)
         state->penguin.tick(seconds, state->runtime);
 }
 
-void source_render(void *, gs_effect_t *)
+void source_render(void *data, gs_effect_t *)
 {
-    // M0: intentionally renders nothing. M1 will render Cubism model textures
-    // using the OBS graphics context. No HTTP server or browser source.
+    const auto *state = static_cast<KeycastSource *>(data);
+    if (!state || !state->runtime.ready()) return;
+    // A platform Cubism mesh renderer is still required. Do not draw a fake
+    // placeholder as though it were a functioning Cubism avatar.
 }
 
-uint32_t source_width(void *) { return 1920; }
-uint32_t source_height(void *) { return 1080; }
+uint32_t source_width(void *data) {
+    const auto *state = static_cast<KeycastSource *>(data);
+    return state ? state->render_state.width() : 612;
+}
+uint32_t source_height(void *data) {
+    const auto *state = static_cast<KeycastSource *>(data);
+    return state ? state->render_state.height() : 354;
+}
 
 obs_properties_t *source_properties(void *)
 {
