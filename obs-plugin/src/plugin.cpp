@@ -1,5 +1,8 @@
 #include <obs-module.h>
 #include <memory>
+#include <filesystem>
+#include <fstream>
+#include <string>
 
 OBS_DECLARE_MODULE()
 OBS_MODULE_USE_DEFAULT_LOCALE("keycast", "en-US")
@@ -13,13 +16,30 @@ namespace {
 struct KeycastSource {
     obs_source_t *source = nullptr;
     explicit KeycastSource(obs_source_t *s) : source(s) {}
+    std::string model_path;
+    bool model_found = false;
 };
 
 const char *source_name(void *) { return "Keycast Live2D"; }
 
-void *source_create(obs_data_t *, obs_source_t *source)
+void source_update(void *data, obs_data_t *settings)
 {
-    return new KeycastSource(source);
+    auto *state = static_cast<KeycastSource *>(data);
+    const char *path = obs_data_get_string(settings, "model_path");
+    state->model_path = path ? path : "";
+    state->model_found = !state->model_path.empty() &&
+        std::filesystem::is_regular_file(std::filesystem::u8path(state->model_path));
+    if (!state->model_path.empty() && !state->model_found)
+        blog(LOG_WARNING, "[keycast] Model manifest not found: %s", state->model_path.c_str());
+    else if (state->model_found)
+        blog(LOG_INFO, "[keycast] Model manifest selected: %s (Cubism renderer not installed)", state->model_path.c_str());
+}
+
+void *source_create(obs_data_t *settings, obs_source_t *source)
+{
+    auto *state = new KeycastSource(source);
+    source_update(state, settings);
+    return state;
 }
 
 void source_destroy(void *data)
@@ -54,6 +74,7 @@ bool obs_module_load(void)
     source_info.get_name = source_name;
     source_info.create = source_create;
     source_info.destroy = source_destroy;
+    source_info.update = source_update;
     source_info.video_render = source_render;
     source_info.get_width = source_width;
     source_info.get_height = source_height;
