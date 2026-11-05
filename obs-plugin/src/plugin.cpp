@@ -1,5 +1,7 @@
 #include <obs-module.h>
 #include "model_loader.hpp"
+#include "cubism_backend.hpp"
+#include "live_penguin.hpp"
 #include <memory>
 #include <filesystem>
 #include <fstream>
@@ -20,6 +22,8 @@ struct KeycastSource {
     std::string model_path;
     bool model_found = false;
     keycast::ModelManifest model;
+    keycast::StagedCubismBackend runtime;
+    keycast::LivePenguin penguin;
 };
 
 const char *source_name(void *) { return "Keycast Live2D"; }
@@ -37,9 +41,10 @@ void source_update(void *data, obs_data_t *settings)
         std::filesystem::u8path(state->model_path), state->model, error);
     if (!state->model_found)
         blog(LOG_WARNING, "[keycast] Invalid Cubism model: %s", error.c_str());
-    else
-        blog(LOG_INFO, "[keycast] Validated Cubism model: %zu textures, %zu motions (rendering not yet available)",
-             state->model.textures.size(), state->model.motions.size());
+    else {
+        state->runtime.load(std::filesystem::u8path(state->model_path), error);
+        blog(LOG_INFO, "[keycast] Cubism assets validated; SDK rendering is not yet available");
+    }
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -52,6 +57,13 @@ void *source_create(obs_data_t *settings, obs_source_t *source)
 void source_destroy(void *data)
 {
     delete static_cast<KeycastSource *>(data);
+}
+
+void source_tick(void *data, float seconds)
+{
+    auto *state = static_cast<KeycastSource *>(data);
+    if (state && state->model_found)
+        state->penguin.tick(seconds, state->runtime);
 }
 
 void source_render(void *, gs_effect_t *)
@@ -82,6 +94,7 @@ bool obs_module_load(void)
     source_info.create = source_create;
     source_info.destroy = source_destroy;
     source_info.update = source_update;
+    source_info.video_tick = source_tick;
     source_info.video_render = source_render;
     source_info.get_width = source_width;
     source_info.get_height = source_height;
