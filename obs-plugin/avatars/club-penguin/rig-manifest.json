@@ -1,0 +1,17 @@
+{
+  "name": "Club Penguin",
+  "canvas": {"width": 612, "height": 354},
+  "source": "club_penguin_bongobs_textures_fixed.zip",
+  "model": "club-penguin.model3.json",
+  "parameters": [
+    "ParamFlipperLeft",
+    "ParamFlipperRight",
+    "ParamMouseClick",
+    "ParamBodyBounce",
+    "ParamBodyAngle",
+    "ParamEyeBlink",
+    "ParamBreathing"
+  ],
+  "rig_status": "requires-cubism-editor-export",
+  "notes": "The reference ZIP contains artwork but no verified Club Penguin moc3 export."
+}
