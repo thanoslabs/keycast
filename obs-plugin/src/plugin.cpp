@@ -88,7 +88,8 @@ uint32_t source_height(void *data) {
 obs_properties_t *source_properties(void *)
 {
     auto *props = obs_properties_create();
-    obs_properties_add_path(props, "model_path", "Live2D .model3.json", OBS_PATH_FILE, "Live2D model (*.model3.json)", nullptr);
+    obs_properties_add_path(props, "model_path", "Avatar .model3.json (Club Penguin or custom)", OBS_PATH_FILE, "Live2D model (*.model3.json)", nullptr);
+    obs_properties_add_text(props, "avatar_hint", "Club Penguin: select its exported .model3.json; the original BongOBS .moc3 is not compatible", OBS_TEXT_INFO);
     return props;
 }
 
