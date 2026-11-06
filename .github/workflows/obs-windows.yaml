@@ -4,21 +4,53 @@ on:
     paths:
       - 'obs-plugin/**'
       - '.github/workflows/obs-windows.yaml'
+  push:
+    branches: [main]
+    paths:
+      - 'obs-plugin/**'
+      - '.github/workflows/obs-windows.yaml'
   workflow_dispatch:
+
 jobs:
   build-windows:
     runs-on: windows-2022
     steps:
       - uses: actions/checkout@v4
-      - name: Configure dependency prerequisites
+      - name: Bootstrap official OBS plugin build dependencies
         shell: pwsh
         run: |
-          Write-Host "Windows OBS plugin build requires OBS SDK/libobs and nlohmann_json."
-          Write-Host "This workflow validates packaging prerequisites; it does not claim a working Cubism renderer."
-      - name: Validate packaging inputs
+          git clone --depth 1 https://github.com/obsproject/obs-plugintemplate.git "$env:RUNNER_TEMP/obs-template"
+          cmake --preset windows-x64 -S "$env:RUNNER_TEMP/obs-template"
+          cmake --build "$env:RUNNER_TEMP/obs-template/build_x64" --config RelWithDebInfo
+      - name: Locate libobs CMake config
+        id: obs
         shell: pwsh
         run: |
-          if (!(Test-Path obs-plugin/CMakeLists.txt)) { throw "Missing CMakeLists.txt" }
-          if (!(Test-Path obs-plugin/src/plugin.cpp)) { throw "Missing plugin source" }
-          if (!(Test-Path obs-plugin/src/cubism_runtime.hpp)) { throw "Missing Cubism runtime contract" }
-          Write-Host "Packaging inputs present. OBS SDK setup and runtime binary are still pending."
+          $root = "$env:RUNNER_TEMP/obs-template"
+          $config = Get-ChildItem -Path $root -Filter 'libobsConfig.cmake' -Recurse -File | Select-Object -First 1
+          if (!$config) { throw "OBS template did not provide libobsConfig.cmake" }
+          "prefix=$($config.Directory.FullName)" >> $env:GITHUB_OUTPUT
+      - name: Install JSON dependency
+        shell: pwsh
+        run: |
+          vcpkg install nlohmann-json:x64-windows
+      - name: Configure Keycast
+        shell: pwsh
+        run: |
+          cmake -S obs-plugin -B build/obs-windows -G "Visual Studio 17 2022" -A x64 -DCMAKE_PREFIX_PATH="${{ steps.obs.outputs.prefix }}" -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DKEYCAST_WITH_CUBISM=OFF -DBUILD_TESTING=ON
+      - name: Build and test Keycast
+        shell: pwsh
+        run: |
+          cmake --build build/obs-windows --config Release --parallel
+          ctest --test-dir build/obs-windows -C Release --output-on-failure
+      - name: Assemble installable ZIP
+        shell: pwsh
+        run: |
+          $dll = Get-ChildItem build/obs-windows -Filter keycast.dll -Recurse -File | Select-Object -First 1
+          if (!$dll) { throw "keycast.dll was not produced" }
+          ./obs-plugin/packaging/package-png-windows.ps1 -PluginDll $dll.FullName -OutputZip "$env:RUNNER_TEMP/keycast-obs-windows-x64.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: keycast-obs-windows-x64
+          path: ${{ runner.temp }}/keycast-obs-windows-x64.zip
+          if-no-files-found: error
