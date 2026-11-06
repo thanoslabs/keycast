@@ -1,0 +1,7 @@
+{
+  "name": "Club Penguin",
+  "model": "club-penguin.model3.json",
+  "animation_response": 12.0,
+  "description": "Separate avatar profile for a user-authored Cubism Editor export",
+  "status": "model-export-required"
+}
