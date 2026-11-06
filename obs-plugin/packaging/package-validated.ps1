@@ -21,7 +21,7 @@ try {
   New-Item -ItemType Directory -Force -Path $binary,$data | Out-Null
   Copy-Item -LiteralPath $PluginDll -Destination (Join-Path $binary "keycast.dll")
   if ($CoreDll) { Copy-Item -LiteralPath $CoreDll -Destination $binary }
-  Copy-Item -LiteralPath (Join-Path (Split-Path $CubismModel -Parent) "*") -Destination $data -Recurse -Force
+  Get-ChildItem -LiteralPath (Split-Path $CubismModel -Parent) | Copy-Item -Destination $data -Recurse -Force
   $destination = [IO.Path]::GetFullPath($OutputZip)
   Compress-Archive -Path (Join-Path $staging "*") -DestinationPath $destination -Force
 } finally {
