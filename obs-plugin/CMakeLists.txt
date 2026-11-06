@@ -26,6 +26,11 @@ if(KEYCAST_WITH_CUBISM)
   # still require a platform adapter and compatible Core library selection.
   target_include_directories(keycast PRIVATE "${KEYCAST_CUBISM_SDK_ROOT}/Core/include")
   target_compile_definitions(keycast PRIVATE KEYCAST_CUBISM_HEADERS_AVAILABLE=1)
+  set(KEYCAST_CUBISM_CORE_LIBRARY "" CACHE FILEPATH "Licensed Cubism Core library for target platform")
+  if(NOT KEYCAST_CUBISM_CORE_LIBRARY OR NOT EXISTS "${KEYCAST_CUBISM_CORE_LIBRARY}")
+    message(FATAL_ERROR "KEYCAST_WITH_CUBISM requires KEYCAST_CUBISM_CORE_LIBRARY")
+  endif()
+  target_link_libraries(keycast PRIVATE "${KEYCAST_CUBISM_CORE_LIBRARY}")
 endif()
 
 include(CTest)
