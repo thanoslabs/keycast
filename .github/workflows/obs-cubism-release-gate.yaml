@@ -1,0 +1,21 @@
+name: OBS Cubism SDK Windows Build
+on:
+  workflow_dispatch:
+    inputs:
+      sdk_available:
+        description: "Set true only when a licensed Cubism SDK and Core library are provisioned on the runner"
+        required: true
+        type: boolean
+        default: false
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Explicitly block empty release
+        shell: pwsh
+        run: |
+          if ('${{ inputs.sdk_available }}' -ne 'true') {
+            throw 'Licensed Cubism SDK and Core library must be provisioned; refusing to publish a nonfunctional OBS plugin'
+          }
+          throw 'Native Cubism GPU renderer and licensed model export are not yet integrated; no release artifact is published'
