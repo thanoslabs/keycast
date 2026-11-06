@@ -1,6 +1,6 @@
 #include <obs-module.h>
 #include "model_loader.hpp"
-#include "cubism_backend.hpp"
+#include "native_cubism_runtime.hpp"
 #include "live_penguin.hpp"
 #include "obs_render_state.hpp"
 #include <memory>
@@ -23,7 +23,7 @@ struct KeycastSource {
     std::string model_path;
     bool model_found = false;
     keycast::ModelManifest model;
-    keycast::StagedCubismBackend runtime;
+    keycast::NativeCubismRuntime runtime;
     keycast::LivePenguin penguin;
     keycast::ObsRenderState render_state;
 };
@@ -45,7 +45,7 @@ void source_update(void *data, obs_data_t *settings)
         blog(LOG_WARNING, "[keycast] Invalid Cubism model: %s", error.c_str());
     else {
         state->runtime.load(std::filesystem::u8path(state->model_path), error);
-        blog(LOG_INFO, "[keycast] Cubism assets validated; SDK rendering is not yet available");
+        blog(LOG_INFO, "[keycast] Cubism assets validated; Core runtime ready: %s", state->runtime.ready() ? "yes" : "no");
     }
 }
 
@@ -88,7 +88,8 @@ uint32_t source_height(void *data) {
 obs_properties_t *source_properties(void *)
 {
     auto *props = obs_properties_create();
-    obs_properties_add_path(props, "model_path", "Live2D .model3.json", OBS_PATH_FILE, "Live2D model (*.model3.json)", nullptr);
+    obs_properties_add_path(props, "model_path", "Avatar .model3.json (Club Penguin or custom)", OBS_PATH_FILE, "Live2D model (*.model3.json)", nullptr);
+    obs_properties_add_text(props, "avatar_hint", "Club Penguin: select its exported .model3.json; the original BongOBS .moc3 is not compatible", OBS_TEXT_INFO);
     return props;
 }
 
