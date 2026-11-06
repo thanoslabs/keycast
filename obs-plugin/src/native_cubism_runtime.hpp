@@ -2,6 +2,8 @@
 #include "cubism_runtime.hpp"
 #include "model_loader.hpp"
 #include <algorithm>
+#include <cstdint>
+#include <limits>
 #include <cstring>
 #include <fstream>
 #include <iterator>
@@ -44,6 +46,7 @@ public:
             (reinterpret_cast<uintptr_t>(moc_bytes_.data()) + 63) & ~uintptr_t(63));
         stream.read(static_cast<char *>(moc_ptr), static_cast<std::streamsize>(moc_size));
         if (!stream) { error = "Failed to read moc3"; return false; }
+        if (moc_size > std::numeric_limits<unsigned int>::max()) { error = "moc3 too large for Cubism Core"; return false; }
         moc_ = csmReviveMocInPlace(moc_ptr, static_cast<unsigned int>(moc_size));
         if (!moc_) { error = "Cubism Core rejected moc3"; return false; }
         const auto size = csmGetSizeofModel(moc_);
@@ -68,7 +71,7 @@ public:
 #ifdef KEYCAST_CUBISM_HEADERS_AVAILABLE
         if (!model_) return;
         const auto count = csmGetParameterCount(model_);
-        const auto **ids = csmGetParameterIds(model_);
+        const char *const *ids = csmGetParameterIds(model_);
         auto *values = csmGetParameterValues(model_);
         const auto *minimum = csmGetParameterMinimumValues(model_);
         const auto *maximum = csmGetParameterMaximumValues(model_);
@@ -84,7 +87,10 @@ public:
     }
     void advance(float) override {
 #ifdef KEYCAST_CUBISM_HEADERS_AVAILABLE
-        if (model_) csmUpdateModel(model_);
+        if (model_) {
+            csmResetDrawableDynamicFlags(model_);
+            csmUpdateModel(model_);
+        }
 #endif
     }
     bool ready() const override {
