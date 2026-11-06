@@ -83,11 +83,11 @@ void source_tick(void *data, float seconds)
     if (!state) return;
     if (state->png_mode) {
         state->png_poller.poll(state->png_inputs);
-        const bool left = state->png_inputs.key_depth(0x57) > 0 ||
-            state->png_inputs.key_depth(0x41) > 0 ||
-            state->png_inputs.key_depth(0x53) > 0 ||
-            state->png_inputs.key_depth(0x44) > 0;
-        const bool right = state->png_inputs.mouse_depth(1) > 0;
+        const bool left = state->png_inputs.amount(keycast::InputKind::Key, 0x57) > 0 ||
+            state->png_inputs.amount(keycast::InputKind::Key, 0x41) > 0 ||
+            state->png_inputs.amount(keycast::InputKind::Key, 0x53) > 0 ||
+            state->png_inputs.amount(keycast::InputKind::Key, 0x44) > 0;
+        const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
         state->png.tick(seconds, left, right);
         return;
     }
