@@ -57,12 +57,8 @@ void source_tick(void *data, float seconds)
     if (!state) return;
     {
         state->png_poller.poll(state->png_inputs);
-        const bool w = state->png_inputs.amount(keycast::InputKind::Key, 0x57) > 0;
-        const bool a = state->png_inputs.amount(keycast::InputKind::Key, 0x41) > 0;
-        const bool s = state->png_inputs.amount(keycast::InputKind::Key, 0x53) > 0;
-        const bool d = state->png_inputs.amount(keycast::InputKind::Key, 0x44) > 0;
         const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
-        state->png.tick(seconds, w, a, s, d, right, state->png_poller.mouse_moving(seconds));
+        state->png.tick(seconds, state->png_inputs, right, state->png_poller.mouse_moving(seconds));
         return;
     }
 }
@@ -101,7 +97,7 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_left_pressed", "Left flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
-    obs_properties_add_path(props, "png_key_folder", "Key overlay folder (W.png, A.png, S.png, D.png)", OBS_PATH_DIRECTORY, nullptr, nullptr);
+    obs_properties_add_path(props, "png_key_folder", "Key overlay folder (A-Z, 0-9, F1-F24, VK_XX.png for other keys)", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_overlay", "Blink (closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_half", "Blink (half-closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
