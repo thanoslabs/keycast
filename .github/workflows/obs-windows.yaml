@@ -1,5 +1,6 @@
 name: OBS Plugin Windows
 on:
+  workflow_call:
   pull_request:
     paths:
       - 'obs-plugin/**'
