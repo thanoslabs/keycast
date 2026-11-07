@@ -58,7 +58,8 @@ void source_tick(void *data, float seconds)
     {
         state->png_poller.poll(state->png_inputs);
         const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
-        state->png.tick(seconds, state->png_inputs, right, state->png_poller.mouse_moving(seconds));
+        const auto motion = state->png_poller.mouse_motion(seconds);
+        state->png.tick(seconds, state->png_inputs, right, motion.moving, motion.x, motion.y);
         return;
     }
 }
