@@ -69,6 +69,9 @@ struct PngPenguin {
     std::array<PngLayer, 256> key_overlays;
     std::array<bool, 256> key_down{};
     std::string key_folder;
+    std::string mouse_folder;
+    PngLayer mouse_idle, mouse_left, mouse_right, mouse_middle, mouse_m4, mouse_m5;
+    unsigned mouse_sprite = 0;
     void reload() {
         background.set(background.path, true);
         body.set(body.path, true);
@@ -79,6 +82,8 @@ struct PngPenguin {
         right_moving.set(right_moving.path, true);
         blink_overlay.set(blink_overlay.path, true);
         blink_half.set(blink_half.path, true);
+        for (auto *layer : {&mouse_idle, &mouse_left, &mouse_right, &mouse_middle, &mouse_m4, &mouse_m5})
+            if (!layer->path.empty()) layer->set(layer->path, true);
         for (auto &layer : key_overlays) {
             if (!layer.path.empty()) layer.set(layer.path, true);
         }
@@ -102,6 +107,21 @@ struct PngPenguin {
             key_overlays[key].set(!file.empty() && fs::is_regular_file(file) ? file.string() : std::string{});
         }
     }
+    void set_mouse_folder(const std::string &folder) {
+        if (folder == mouse_folder) return;
+        mouse_folder = folder;
+        namespace fs = std::filesystem;
+        auto assign = [&](PngLayer &layer, const char *filename) {
+            const auto file = folder.empty() ? fs::path{} : fs::path(folder) / filename;
+            layer.set(!file.empty() && fs::is_regular_file(file) ? file.string() : std::string{});
+        };
+        assign(mouse_idle, "mouse.png");
+        assign(mouse_left, "mouse_left_click.png");
+        assign(mouse_right, "mouse_right_click.png");
+        assign(mouse_middle, "mouse_middle_click.png");
+        assign(mouse_m4, "mouse_m4_click.png");
+        assign(mouse_m5, "mouse_m5_click.png");
+    }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
     bool mouse_motion = false;
@@ -114,6 +134,14 @@ struct PngPenguin {
             left_down = left_down || key_down[key];
         }
         mouse_motion = moving;
+        mouse_sprite = 0;
+        // A single mouse PNG per frame; deterministic priority for combinations.
+        if (inputs.amount(InputKind::MouseButton, 5) > 0.f) mouse_sprite = 5;
+        if (inputs.amount(InputKind::MouseButton, 4) > 0.f) mouse_sprite = 4;
+        if (inputs.amount(InputKind::MouseButton, 2) > 0.f) mouse_sprite = 2;
+        if (inputs.amount(InputKind::MouseButton, 3) > 0.f ||
+            inputs.amount(InputKind::MouseButton, 6) > 0.f) mouse_sprite = 3;
+        if (inputs.amount(InputKind::MouseButton, 1) > 0.f) mouse_sprite = 1;
         // Bounded elliptical travel; decay to the resting pose when idle.
         const float step = std::clamp(dt, 0.f, .1f);
         hand_x += std::clamp(motion_x, -1.f, 1.f) * mousepad_range_x * 0.30f;
@@ -165,6 +193,15 @@ struct PngPenguin {
         for (unsigned key = 0; key < key_overlays.size(); ++key)
             if (key_down[key]) key_overlays[key].draw(0, 0);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
+        // Mouse and right flipper share the same bounded movement transform.
+        // Draw mouse first so the flipper appears naturally on top of it.
+        const PngLayer *mouse = &mouse_idle;
+        if (mouse_sprite == 1 && mouse_left.loaded) mouse = &mouse_left;
+        else if (mouse_sprite == 2 && mouse_right.loaded) mouse = &mouse_right;
+        else if (mouse_sprite == 3 && mouse_middle.loaded) mouse = &mouse_middle;
+        else if (mouse_sprite == 4 && mouse_m4.loaded) mouse = &mouse_m4;
+        else if (mouse_sprite == 5 && mouse_m5.loaded) mouse = &mouse_m5;
+        mouse->draw(hand_x, hand_y - 3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(hand_x, hand_y - 3.f * bounce);
     }
 };
