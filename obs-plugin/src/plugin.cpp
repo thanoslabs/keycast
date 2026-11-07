@@ -34,6 +34,7 @@ void source_update(void *data, obs_data_t *settings)
     state->png.right_idle.set(obs_data_get_string(settings, "png_right_idle"));
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
     state->png.set_key_folder(obs_data_get_string(settings, "png_key_folder"));
+    state->png.set_mouse_folder(obs_data_get_string(settings, "png_mouse_folder"));
     state->png.right_moving.set(obs_data_get_string(settings, "png_right_moving"));
     state->png.blink_overlay.set(obs_data_get_string(settings, "png_blink_overlay"));
     state->png.blink_half.set(obs_data_get_string(settings, "png_blink_half"));
@@ -56,7 +57,7 @@ void source_tick(void *data, float seconds)
     auto *state = static_cast<KeycastSource *>(data);
     if (!state) return;
     {
-        state->png_poller.poll(state->png_inputs);
+        state->png_poller.poll(state->png_inputs, seconds);
         const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
         const auto motion = state->png_poller.mouse_motion(seconds);
         state->png.tick(seconds, state->png_inputs, right, motion.moving, motion.x, motion.y);
@@ -99,6 +100,7 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_key_folder", "Key overlay folder (A-Z, 0-9, F1-F24, VK_XX.png for other keys)", OBS_PATH_DIRECTORY, nullptr, nullptr);
+    obs_properties_add_path(props, "png_mouse_folder", "Mouse sprite folder", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_overlay", "Blink (closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_half", "Blink (half-closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
