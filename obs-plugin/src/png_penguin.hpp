@@ -73,11 +73,11 @@ struct PngPenguin {
     }
     void render() const {
         background.draw(0, 0);
+        body.draw(0, -3.f * bounce);
         if (w_down) key_w.draw(0, 0);
         if (a_down) key_a.draw(0, 0);
         if (s_down) key_s.draw(0, 0);
         if (d_down) key_d.draw(0, 0);
-        body.draw(0, -3.f * bounce);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
     }
