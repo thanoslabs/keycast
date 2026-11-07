@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <filesystem>
 #include <random>
+#include <array>
+#include <cstdio>
+#include "input_events.hpp"
 namespace keycast {
 struct PngLayer {
     gs_image_file_t image{};
@@ -63,7 +66,9 @@ struct PngPenguin {
     float until_blink = blink_interval(blink_rng);
     float blink_remaining = 0.f;
     static constexpr float blink_duration = 0.20f;
-    PngLayer key_w, key_a, key_s, key_d;
+    std::array<PngLayer, 256> key_overlays;
+    std::array<bool, 256> key_down{};
+    std::string key_folder;
     void reload() {
         background.set(background.path, true);
         body.set(body.path, true);
@@ -74,28 +79,38 @@ struct PngPenguin {
         right_moving.set(right_moving.path, true);
         blink_overlay.set(blink_overlay.path, true);
         blink_half.set(blink_half.path, true);
-        key_w.set(key_w.path, true);
-        key_a.set(key_a.path, true);
-        key_s.set(key_s.path, true);
-        key_d.set(key_d.path, true);
+        for (auto &layer : key_overlays) {
+            if (!layer.path.empty()) layer.set(layer.path, true);
+        }
+    }
+    static std::string key_filename(unsigned key) {
+        if ((key >= 0x30 && key <= 0x39) || (key >= 0x41 && key <= 0x5A))
+            return std::string(1, static_cast<char>(key)) + ".png";
+        if (key >= 0x70 && key <= 0x87)
+            return "F" + std::to_string(key - 0x6F) + ".png";
+        // Unambiguous virtual-key names for modifiers, punctuation, numpad, etc.
+        char filename[16];
+        std::snprintf(filename, sizeof(filename), "VK_%02X.png", key);
+        return filename;
     }
     void set_key_folder(const std::string &folder) {
+        if (folder == key_folder) return;
+        key_folder = folder;
         namespace fs = std::filesystem;
-        auto assign = [&](PngLayer &layer, const char *filename) {
-            layer.set(folder.empty() ? std::string{} : (fs::path(folder) / filename).string());
-        };
-        assign(key_w, "W.png");
-        assign(key_a, "A.png");
-        assign(key_s, "S.png");
-        assign(key_d, "D.png");
+        for (unsigned key = 0; key < key_overlays.size(); ++key) {
+            const auto file = folder.empty() ? fs::path{} : fs::path(folder) / key_filename(key);
+            key_overlays[key].set(!file.empty() && fs::is_regular_file(file) ? file.string() : std::string{});
+        }
     }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
-    bool w_down = false, a_down = false, s_down = false, d_down = false;
     bool mouse_motion = false;
-    void tick(float dt, bool w, bool a, bool s, bool d, bool right_down, bool moving) {
-        w_down = w; a_down = a; s_down = s; d_down = d;
-        const bool left_down = w || a || s || d;
+    void tick(float dt, const InputState &inputs, bool right_down, bool moving) {
+        bool left_down = false;
+        for (unsigned key = 0; key < key_overlays.size(); ++key) {
+            key_down[key] = key_overlays[key].loaded && inputs.amount(InputKind::Key, key) > 0.f;
+            left_down = left_down || key_down[key];
+        }
         mouse_motion = moving;
         const float elapsed = std::clamp(dt, 0.f, 0.1f);
         if (blink_remaining > 0.f) {
@@ -129,10 +144,8 @@ struct PngPenguin {
                 blink_overlay.draw(0, -3.f * bounce);
             }
         }
-        if (w_down) key_w.draw(0, 0);
-        if (a_down) key_a.draw(0, 0);
-        if (s_down) key_s.draw(0, 0);
-        if (d_down) key_d.draw(0, 0);
+        for (unsigned key = 0; key < key_overlays.size(); ++key)
+            if (key_down[key]) key_overlays[key].draw(0, 0);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
     }
