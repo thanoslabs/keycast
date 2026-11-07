@@ -33,7 +33,11 @@ void source_update(void *data, obs_data_t *settings)
     state->png.left_pressed.set(obs_data_get_string(settings, "png_left_pressed"));
     state->png.right_idle.set(obs_data_get_string(settings, "png_right_idle"));
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
-    state->png.keyboard_overlay.set(obs_data_get_string(settings, "png_keyboard_overlay"));
+    state->png.key_w.set(obs_data_get_string(settings, "png_key_w"));
+    state->png.key_a.set(obs_data_get_string(settings, "png_key_a"));
+    state->png.key_s.set(obs_data_get_string(settings, "png_key_s"));
+    state->png.key_d.set(obs_data_get_string(settings, "png_key_d"));
+    state->png.right_moving.set(obs_data_get_string(settings, "png_right_moving"));
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -54,12 +58,12 @@ void source_tick(void *data, float seconds)
     if (!state) return;
     {
         state->png_poller.poll(state->png_inputs);
-        const bool left = state->png_inputs.amount(keycast::InputKind::Key, 0x57) > 0 ||
-            state->png_inputs.amount(keycast::InputKind::Key, 0x41) > 0 ||
-            state->png_inputs.amount(keycast::InputKind::Key, 0x53) > 0 ||
-            state->png_inputs.amount(keycast::InputKind::Key, 0x44) > 0;
+        const bool w = state->png_inputs.amount(keycast::InputKind::Key, 0x57) > 0;
+        const bool a = state->png_inputs.amount(keycast::InputKind::Key, 0x41) > 0;
+        const bool s = state->png_inputs.amount(keycast::InputKind::Key, 0x53) > 0;
+        const bool d = state->png_inputs.amount(keycast::InputKind::Key, 0x44) > 0;
         const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
-        state->png.tick(seconds, left, right);
+        state->png.tick(seconds, w, a, s, d, right, state->png_poller.mouse_moving(seconds));
         return;
     }
 }
@@ -90,7 +94,11 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_left_pressed", "Left flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
-    obs_properties_add_path(props, "png_keyboard_overlay", "Keyboard press overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_key_w", "W key overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_key_a", "A key overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_key_s", "S key overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_key_d", "D key overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     return props;
 }
 
