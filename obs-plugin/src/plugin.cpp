@@ -35,6 +35,8 @@ void source_update(void *data, obs_data_t *settings)
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
     state->png.set_key_folder(obs_data_get_string(settings, "png_key_folder"));
     state->png.right_moving.set(obs_data_get_string(settings, "png_right_moving"));
+    state->png.blink_overlay.set(obs_data_get_string(settings, "png_blink_overlay"));
+    state->png.blink_half.set(obs_data_get_string(settings, "png_blink_half"));
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -101,6 +103,8 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_key_folder", "Key overlay folder (W.png, A.png, S.png, D.png)", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_blink_overlay", "Blink (closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_blink_half", "Blink (half-closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_button(props, "png_reload", "Reload assets", reload_assets);
     return props;
 }

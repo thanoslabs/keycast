@@ -5,6 +5,7 @@
 #include <cmath>
 #include <algorithm>
 #include <filesystem>
+#include <random>
 namespace keycast {
 struct PngLayer {
     gs_image_file_t image{};
@@ -56,7 +57,12 @@ struct PngLayer {
 };
 struct PngPenguin {
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
-    PngLayer right_moving;
+    PngLayer right_moving, blink_overlay, blink_half;
+    std::mt19937 blink_rng{std::random_device{}()};
+    std::uniform_real_distribution<float> blink_interval{2.5f, 6.5f};
+    float until_blink = blink_interval(blink_rng);
+    float blink_remaining = 0.f;
+    static constexpr float blink_duration = 0.20f;
     PngLayer key_w, key_a, key_s, key_d;
     void reload() {
         background.set(background.path, true);
@@ -66,6 +72,8 @@ struct PngPenguin {
         right_idle.set(right_idle.path, true);
         right_pressed.set(right_pressed.path, true);
         right_moving.set(right_moving.path, true);
+        blink_overlay.set(blink_overlay.path, true);
+        blink_half.set(blink_half.path, true);
         key_w.set(key_w.path, true);
         key_a.set(key_a.path, true);
         key_s.set(key_s.path, true);
@@ -89,6 +97,16 @@ struct PngPenguin {
         w_down = w; a_down = a; s_down = s; d_down = d;
         const bool left_down = w || a || s || d;
         mouse_motion = moving;
+        const float elapsed = std::clamp(dt, 0.f, 0.1f);
+        if (blink_remaining > 0.f) {
+            blink_remaining = std::max(0.f, blink_remaining - elapsed);
+        } else if (blink_overlay.loaded) {
+            until_blink -= elapsed;
+            if (until_blink <= 0.f) {
+                blink_remaining = blink_duration;
+                until_blink = blink_interval(blink_rng);
+            }
+        }
         const float blend = 1.f - std::exp(-std::clamp(dt, 0.f, .1f) * 18.f);
         keyboard_down = left_down;
         left += ((left_down ? 1.f : 0.f) - left) * blend;
@@ -98,6 +116,19 @@ struct PngPenguin {
     void render() const {
         background.draw(0, 0);
         body.draw(0, -3.f * bounce);
+        if (blink_remaining > 0.f) {
+            const float progress = 1.f - blink_remaining / blink_duration;
+            if (blink_half.loaded) {
+                if (progress >= 0.10f && progress < 0.35f)
+                    blink_half.draw(0, -3.f * bounce);
+                else if (progress >= 0.35f && progress < 0.65f)
+                    blink_overlay.draw(0, -3.f * bounce);
+                else if (progress >= 0.65f && progress < 0.90f)
+                    blink_half.draw(0, -3.f * bounce);
+            } else {
+                blink_overlay.draw(0, -3.f * bounce);
+            }
+        }
         if (w_down) key_w.draw(0, 0);
         if (a_down) key_a.draw(0, 0);
         if (s_down) key_s.draw(0, 0);
