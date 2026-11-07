@@ -33,6 +33,7 @@ void source_update(void *data, obs_data_t *settings)
     state->png.left_pressed.set(obs_data_get_string(settings, "png_left_pressed"));
     state->png.right_idle.set(obs_data_get_string(settings, "png_right_idle"));
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
+    state->png.keyboard_overlay.set(obs_data_get_string(settings, "png_keyboard_overlay"));
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -89,6 +90,7 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_left_pressed", "Left flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_keyboard_overlay", "Keyboard press overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
     return props;
 }
 
