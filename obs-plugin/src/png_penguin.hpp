@@ -69,10 +69,10 @@ struct PngPenguin {
     }
     void render() const {
         background.draw(0, 0);
+        if (keyboard_down) keyboard_overlay.draw(0, 0);
         body.draw(0, -3.f * bounce);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
-        if (keyboard_down) keyboard_overlay.draw(0, 0);
     }
 };
 }
