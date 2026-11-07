@@ -1,6 +1,7 @@
 #pragma once
 #include "input_events.hpp"
 #include <algorithm>
+#include <cmath>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -15,25 +16,34 @@ class WindowsInputPoller {
 #endif
     mutable float motion_hold_ = 0.f;
 public:
-    bool mouse_moving(float dt) const {
+    struct MouseMotion {
+        float x = 0.f;
+        float y = 0.f;
+        bool moving = false;
+    };
+    MouseMotion mouse_motion(float dt) const {
+        float dx = 0.f, dy = 0.f;
 #ifdef _WIN32
         POINT point{};
         if (GetCursorPos(&point)) {
             if (has_cursor_) {
-                const long dx = point.x - previous_cursor_.x;
-                const long dy = point.y - previous_cursor_.y;
-                if (dx * dx + dy * dy >= 4) motion_hold_ = 0.12f;
+                dx = static_cast<float>(point.x - previous_cursor_.x);
+                dy = static_cast<float>(point.y - previous_cursor_.y);
+                if (dx * dx + dy * dy >= 4.f) motion_hold_ = 0.12f;
             }
             previous_cursor_ = point;
             has_cursor_ = true;
+        } else {
+            has_cursor_ = false;
         }
-#else
-        (void)dt;
 #endif
         const bool moving = motion_hold_ > 0.f;
         motion_hold_ = std::max(0.f, motion_hold_ - std::max(0.f, dt));
-        return moving;
+        // Cursor velocity is bounded so a screen-edge jump cannot fling the hand.
+        return {std::clamp(dx / 35.f, -1.f, 1.f),
+                std::clamp(dy / 35.f, -1.f, 1.f), moving};
     }
+    bool mouse_moving(float dt) const { return mouse_motion(dt).moving; }
     void poll(InputState &state) const {
 #ifdef _WIN32
         // Poll the full Windows virtual-key range for configured PNG overlays.

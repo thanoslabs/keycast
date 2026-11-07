@@ -105,13 +105,31 @@ struct PngPenguin {
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
     bool mouse_motion = false;
-    void tick(float dt, const InputState &inputs, bool right_down, bool moving) {
+    float hand_x = 0.f, hand_y = 0.f;
+    float mousepad_range_x = 14.f, mousepad_range_y = 8.f;
+    void tick(float dt, const InputState &inputs, bool right_down, bool moving, float motion_x, float motion_y) {
         bool left_down = false;
         for (unsigned key = 0; key < key_overlays.size(); ++key) {
             key_down[key] = key_overlays[key].loaded && inputs.amount(InputKind::Key, key) > 0.f;
             left_down = left_down || key_down[key];
         }
         mouse_motion = moving;
+        // Bounded elliptical travel; decay to the resting pose when idle.
+        const float step = std::clamp(dt, 0.f, .1f);
+        hand_x += std::clamp(motion_x, -1.f, 1.f) * mousepad_range_x * 0.30f;
+        hand_y += std::clamp(motion_y, -1.f, 1.f) * mousepad_range_y * 0.30f;
+        if (!moving) {
+            const float recovery = std::exp(-step * 7.f);
+            hand_x *= recovery;
+            hand_y *= recovery;
+        }
+        const float nx = hand_x / std::max(1.f, mousepad_range_x);
+        const float ny = hand_y / std::max(1.f, mousepad_range_y);
+        const float radius = std::sqrt(nx * nx + ny * ny);
+        if (radius > 1.f) {
+            hand_x /= radius;
+            hand_y /= radius;
+        }
         const float elapsed = std::clamp(dt, 0.f, 0.1f);
         if (blink_remaining > 0.f) {
             blink_remaining = std::max(0.f, blink_remaining - elapsed);
@@ -147,7 +165,7 @@ struct PngPenguin {
         for (unsigned key = 0; key < key_overlays.size(); ++key)
             if (key_down[key]) key_overlays[key].draw(0, 0);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
-        (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
+        (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(hand_x, hand_y - 3.f * bounce);
     }
 };
 }
