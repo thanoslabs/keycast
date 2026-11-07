@@ -34,6 +34,7 @@ void source_update(void *data, obs_data_t *settings)
     state->png.right_idle.set(obs_data_get_string(settings, "png_right_idle"));
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
     state->png.keyboard_overlay.set(obs_data_get_string(settings, "png_keyboard_overlay"));
+    state->png.right_moving.set(obs_data_get_string(settings, "png_right_moving"));
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -59,7 +60,7 @@ void source_tick(void *data, float seconds)
             state->png_inputs.amount(keycast::InputKind::Key, 0x53) > 0 ||
             state->png_inputs.amount(keycast::InputKind::Key, 0x44) > 0;
         const bool right = state->png_inputs.amount(keycast::InputKind::MouseButton, 1) > 0;
-        state->png.tick(seconds, left, right);
+        state->png.tick(seconds, left, right, state->png_poller.mouse_moving(seconds));
         return;
     }
 }
@@ -91,6 +92,7 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_keyboard_overlay", "Keyboard press overlay PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     return props;
 }
 
