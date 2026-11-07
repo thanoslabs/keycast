@@ -55,10 +55,12 @@ struct PngLayer {
 };
 struct PngPenguin {
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
-    PngLayer keyboard_overlay;
+    PngLayer keyboard_overlay, right_moving;
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
-    void tick(float dt, bool left_down, bool right_down) {
+    bool mouse_motion = false;
+    void tick(float dt, bool left_down, bool right_down, bool moving) {
+        mouse_motion = moving;
         const float blend = 1.f - std::exp(-std::clamp(dt, 0.f, .1f) * 18.f);
         keyboard_down = left_down;
         left += ((left_down ? 1.f : 0.f) - left) * blend;
@@ -69,7 +71,7 @@ struct PngPenguin {
         background.draw(0, 0);
         body.draw(0, -3.f * bounce);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
-        (right > .5f && right_pressed.loaded ? right_pressed : right_idle).draw(0, -3.f * bounce);
+        (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
         if (keyboard_down) keyboard_overlay.draw(0, 0);
     }
 };
