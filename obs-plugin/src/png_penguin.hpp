@@ -55,11 +55,15 @@ struct PngLayer {
 };
 struct PngPenguin {
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
-    PngLayer keyboard_overlay, right_moving;
+    PngLayer right_moving;
+    PngLayer key_w, key_a, key_s, key_d;
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
+    bool w_down = false, a_down = false, s_down = false, d_down = false;
     bool mouse_motion = false;
-    void tick(float dt, bool left_down, bool right_down, bool moving) {
+    void tick(float dt, bool w, bool a, bool s, bool d, bool right_down, bool moving) {
+        w_down = w; a_down = a; s_down = s; d_down = d;
+        const bool left_down = w || a || s || d;
         mouse_motion = moving;
         const float blend = 1.f - std::exp(-std::clamp(dt, 0.f, .1f) * 18.f);
         keyboard_down = left_down;
@@ -69,8 +73,11 @@ struct PngPenguin {
     }
     void render() const {
         background.draw(0, 0);
-        if (keyboard_down) keyboard_overlay.draw(0, 0);
         body.draw(0, -3.f * bounce);
+        if (w_down) key_w.draw(0, 0);
+        if (a_down) key_a.draw(0, 0);
+        if (s_down) key_s.draw(0, 0);
+        if (d_down) key_d.draw(0, 0);
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(0, -3.f * bounce);
     }
