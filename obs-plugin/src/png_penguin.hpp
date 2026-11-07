@@ -4,6 +4,7 @@
 #include <string>
 #include <cmath>
 #include <algorithm>
+#include <filesystem>
 namespace keycast {
 struct PngLayer {
     gs_image_file_t image{};
@@ -20,8 +21,8 @@ struct PngLayer {
         initialized = loaded = false;
     }
     ~PngLayer() { release(); }
-    void set(const std::string &next) {
-        if (next == path) return;
+    void set(const std::string &next, bool force = false) {
+        if (!force && next == path) return;
         release();
         path = next;
         if (path.empty()) return;
@@ -57,6 +58,29 @@ struct PngPenguin {
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
     PngLayer right_moving;
     PngLayer key_w, key_a, key_s, key_d;
+    void reload() {
+        background.set(background.path, true);
+        body.set(body.path, true);
+        left_idle.set(left_idle.path, true);
+        left_pressed.set(left_pressed.path, true);
+        right_idle.set(right_idle.path, true);
+        right_pressed.set(right_pressed.path, true);
+        right_moving.set(right_moving.path, true);
+        key_w.set(key_w.path, true);
+        key_a.set(key_a.path, true);
+        key_s.set(key_s.path, true);
+        key_d.set(key_d.path, true);
+    }
+    void set_key_folder(const std::string &folder) {
+        namespace fs = std::filesystem;
+        auto assign = [&](PngLayer &layer, const char *filename) {
+            layer.set(folder.empty() ? std::string{} : (fs::path(folder) / filename).string());
+        };
+        assign(key_w, "W.png");
+        assign(key_a, "A.png");
+        assign(key_s, "S.png");
+        assign(key_d, "D.png");
+    }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
     bool w_down = false, a_down = false, s_down = false, d_down = false;
