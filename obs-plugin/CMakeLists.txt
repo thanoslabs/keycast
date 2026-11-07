@@ -14,25 +14,6 @@ if(WIN32)
   set_target_properties(keycast PROPERTIES OUTPUT_NAME "keycast")
 endif()
 
-# Cubism Core is licensed separately. Require an explicitly supplied SDK root;
-# never download or commit the proprietary binaries.
-option(KEYCAST_WITH_CUBISM "Enable Cubism Native SDK integration" OFF)
-set(KEYCAST_CUBISM_SDK_ROOT "" CACHE PATH "Path to locally installed Cubism SDK for Native")
-if(KEYCAST_WITH_CUBISM)
-  if(NOT KEYCAST_CUBISM_SDK_ROOT OR NOT EXISTS "${KEYCAST_CUBISM_SDK_ROOT}/Core/include/Live2DCubismCore.h")
-    message(FATAL_ERROR "KEYCAST_WITH_CUBISM requires a Cubism SDK for Native root with Core/include/Live2DCubismCore.h")
-  endif()
-  # Core API availability is verified here. Runtime allocation and mesh drawing
-  # still require a platform adapter and compatible Core library selection.
-  target_include_directories(keycast PRIVATE "${KEYCAST_CUBISM_SDK_ROOT}/Core/include")
-  target_compile_definitions(keycast PRIVATE KEYCAST_CUBISM_HEADERS_AVAILABLE=1)
-  set(KEYCAST_CUBISM_CORE_LIBRARY "" CACHE FILEPATH "Licensed Cubism Core library for target platform")
-  if(NOT KEYCAST_CUBISM_CORE_LIBRARY OR NOT EXISTS "${KEYCAST_CUBISM_CORE_LIBRARY}")
-    message(FATAL_ERROR "KEYCAST_WITH_CUBISM requires KEYCAST_CUBISM_CORE_LIBRARY")
-  endif()
-  target_link_libraries(keycast PRIVATE "${KEYCAST_CUBISM_CORE_LIBRARY}")
-endif()
-
 include(CTest)
 if(BUILD_TESTING)
   add_executable(keycast-model-loader-test tests/model_loader_test.cpp)
