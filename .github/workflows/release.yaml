@@ -6,28 +6,26 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Explicit version to release (bare X.Y.Z, e.g. 1.2.3). Omit to derive the next version from PR labels."
+        description: "Explicit version (X.Y.Z); omit to bump from merged PR labels"
         required: false
         type: string
 
-# Needed to push the release tag and create the GitHub release.
 permissions:
   contents: write
 
-# Serialize releases so back-to-back merges to main don't race on tag creation.
 concurrency:
   group: release
   cancel-in-progress: false
 
 jobs:
-  release:
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4.2.2
+      - uses: actions/checkout@v4.2.2
         with:
-          fetch-depth: 0 # full history + existing tags are required to compute the next version
-
+          fetch-depth: 0
       - name: Compute next version
         id: version
         env:
@@ -77,119 +75,45 @@ jobs:
           echo "base=${BASE} labels=[${LABELS:-none}] bump=${LEVEL} version=${VERSION}"
           echo "version=${VERSION}" >> "${GITHUB_OUTPUT}"
 
-      - name: Tag release
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
+
+  build-obs:
+    needs: version
+    uses: ./.github/workflows/obs-windows.yaml
+    permissions:
+      contents: read
+
+  publish:
+    needs: [version, build-obs]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: keycast-obs-windows-x64
+          path: dist
+      - name: Verify OBS plugin release archive
         run: |
           set -euo pipefail
+          test -s dist/keycast-obs-windows-x64.zip
+          unzip -Z1 dist/keycast-obs-windows-x64.zip | grep -Fxq 'keycast/bin/64bit/keycast.dll'
+          (cd dist && sha256sum keycast-obs-windows-x64.zip > SHA256SUMS)
+      - name: Tag and publish OBS-only release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          if git rev-parse -q --verify "refs/tags/${VERSION}" >/dev/null; then
+            echo "::error::Release tag ${VERSION} already exists"
+            exit 1
+          fi
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
           git tag -a "${VERSION}" -m "Release ${VERSION}"
           git push origin "refs/tags/${VERSION}"
-
-      # Build the binary in this workflow: tags created with GITHUB_TOKEN do not
-      # trigger a separate tag-push workflow.
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: go.mod
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Build web dashboard
-        working-directory: web
-        run: |
-          npm install --no-audit --no-fund
-          npm run build
-
-      - name: Build Windows executable
-        env:
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
-          set -euo pipefail
-          mkdir -p dist
-          GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build \
-            -trimpath -ldflags="-s -w" -o dist/keycast-windows-amd64.exe ./cmd/keycast
-          mkdir -p dist/package/web
-          cp dist/keycast-windows-amd64.exe dist/package/keycast.exe
-          cp -R web/dist/. dist/package/web/
-          cp packaging/windows/startup.ps1 dist/package/startup.ps1
-          cp packaging/windows/tray.ps1 dist/package/tray.ps1
-          cp packaging/windows/tray.vbs dist/package/tray.vbs
-
-
-      - name: Bundle Wooting Analog SDK distributable
-        env:
-          WOOTING_SDK_VERSION: v0.9.1
-        run: |
-          set -euo pipefail
-          python3 - <<'PY'
-          import io
-          import json
-          import os
-          from pathlib import Path
-          import tarfile
-          import urllib.request
-          import zipfile
-
-          version = os.environ["WOOTING_SDK_VERSION"]
-          api = f"https://api.github.com/repos/WootingKb/wooting-analog-sdk/releases/tags/{version}"
-          headers = {"User-Agent": "keycast-release", "Accept": "application/vnd.github+json"}
-          def fetch(url):
-              return urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=120).read()
-          release = json.loads(fetch(api))
-          assets = [a for a in release["assets"] if "windows" in a["name"].lower()
-                    and ("x86_64" in a["name"].lower() or "amd64" in a["name"].lower())
-                    and a["name"].lower().endswith((".zip", ".tar.gz", ".tgz"))]
-          if len(assets) != 1:
-              raise SystemExit(f"Expected one Windows x64 SDK archive, found: {[a['name'] for a in assets]}")
-          asset = assets[0]
-          archive = fetch(asset["browser_download_url"])
-          name = asset["name"].lower()
-          if name.endswith(".zip"):
-              with zipfile.ZipFile(io.BytesIO(archive)) as z:
-                  dlls = [n for n in z.namelist() if Path(n).name.lower() == "wooting_analog_sdk_dist.dll"
-                          and "debug" not in n.lower()]
-                  if len(dlls) != 1:
-                      raise SystemExit(f"Expected one release DLL in {asset['name']}, found: {dlls}")
-                  dll = z.read(dlls[0])
-          else:
-              with tarfile.open(fileobj=io.BytesIO(archive), mode="r:gz") as t:
-                  matches = [m for m in t.getmembers() if m.isfile()
-                             and Path(m.name).name.lower() == "wooting_analog_sdk_dist.dll"
-                             and "debug" not in m.name.lower()]
-                  if len(matches) != 1:
-                      raise SystemExit(f"Expected one release DLL in {asset['name']}, found: {[m.name for m in matches]}")
-                  dll = t.extractfile(matches[0]).read()
-          dest = Path("dist/package/wooting_analog_sdk_dist.dll")
-          dest.write_bytes(dll)
-          license_url = f"https://raw.githubusercontent.com/WootingKb/wooting-analog-sdk/{version}/LICENSE"
-          Path("dist/package/WOOTING-SDK-LICENSE.txt").write_bytes(fetch(license_url))
-          print(f"Bundled Wooting SDK {version} from {asset['name']} ({len(dll)} bytes)")
-          PY
-
-      - name: Record packaged component checksums
-        run: |
-          set -euo pipefail
-          (cd dist/package && find . -type f -print0 | sort -z | xargs -0 sha256sum) > dist/PACKAGE-SHA256SUMS
-
-      - name: Package Windows portable release
-        run: |
-          set -euo pipefail
-          (cd dist/package && zip -qr ../keycast-windows-amd64.zip .)
-          (cd dist && sha256sum keycast-windows-amd64.exe keycast-windows-amd64.zip > SHA256SUMS)
-          unzip -Z1 dist/keycast-windows-amd64.zip | grep -Fxq wooting_analog_sdk_dist.dll
-          unzip -Z1 dist/keycast-windows-amd64.zip | grep -Fxq WOOTING-SDK-LICENSE.txt
-
-      - name: Create GitHub release
-        env:
-          GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ steps.version.outputs.version }}
-        run: |
           gh release create "${VERSION}" \
-            dist/keycast-windows-amd64.exe dist/keycast-windows-amd64.zip dist/SHA256SUMS \
+            dist/keycast-obs-windows-x64.zip dist/SHA256SUMS \
             --title "${VERSION}" \
             --generate-notes
