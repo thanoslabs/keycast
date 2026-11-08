@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <atomic>
+#include <thread>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -17,20 +18,50 @@ class WindowsInputPoller {
 #endif
     mutable float motion_hold_ = 0.f;
 #ifdef _WIN32
-    inline static std::atomic<int> wheel_events_{0};
-    inline static HHOOK wheel_hook_ = nullptr;
+    inline static std::atomic<bool> wheel_event_{false};
+    std::thread wheel_thread_;
+    std::atomic<DWORD> wheel_thread_id_{0};
     static LRESULT CALLBACK wheel_callback(int code, WPARAM message, LPARAM data) {
         if (code >= 0 && (message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL))
-            wheel_events_.fetch_add(1, std::memory_order_relaxed);
-        return CallNextHookEx(wheel_hook_, code, message, data);
+            wheel_event_.store(true, std::memory_order_relaxed);
+        return CallNextHookEx(nullptr, code, message, data);
     }
-    static void ensure_wheel_hook() {
-        if (!wheel_hook_)
-            wheel_hook_ = SetWindowsHookExW(WH_MOUSE_LL, wheel_callback, GetModuleHandleW(nullptr), 0);
+    void run_wheel_hook() {
+        // Low-level hooks execute on their installing thread. Give that thread
+        // its own message pump so OBS rendering cannot delay game input.
+        MSG msg{};
+        PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
+        const HHOOK hook = SetWindowsHookExW(WH_MOUSE_LL, wheel_callback,
+                                            GetModuleHandleW(nullptr), 0);
+        wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
+        while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        if (hook) UnhookWindowsHookEx(hook);
     }
 #endif
     mutable float wheel_hold_ = 0.f;
 public:
+    WindowsInputPoller() {
+#ifdef _WIN32
+        wheel_thread_ = std::thread([this] { run_wheel_hook(); });
+#endif
+    }
+    ~WindowsInputPoller() {
+#ifdef _WIN32
+        const DWORD thread_id = wheel_thread_id_.load(std::memory_order_acquire);
+        if (wheel_thread_.joinable()) {
+            // Thread ID is published only after its message queue exists.
+            while (wheel_thread_id_.load(std::memory_order_acquire) == 0)
+                std::this_thread::yield();
+            PostThreadMessageW(wheel_thread_id_.load(std::memory_order_acquire), WM_QUIT, 0, 0);
+            wheel_thread_.join();
+        }
+#endif
+    }
+    WindowsInputPoller(const WindowsInputPoller &) = delete;
+    WindowsInputPoller &operator=(const WindowsInputPoller &) = delete;
     struct MouseMotion {
         float x = 0.f;
         float y = 0.f;
@@ -69,8 +100,7 @@ public:
         state.apply({InputKind::MouseButton, 3, (GetAsyncKeyState(VK_MBUTTON) & 0x8000) ? 1.0f : 0.0f});
         state.apply({InputKind::MouseButton, 4, (GetAsyncKeyState(VK_XBUTTON1) & 0x8000) ? 1.0f : 0.0f});
         state.apply({InputKind::MouseButton, 5, (GetAsyncKeyState(VK_XBUTTON2) & 0x8000) ? 1.0f : 0.0f});
-        ensure_wheel_hook();
-        if (wheel_events_.exchange(0, std::memory_order_relaxed) > 0)
+        if (wheel_event_.exchange(false, std::memory_order_relaxed))
             wheel_hold_ = 0.12f;
         const bool wheel_active = wheel_hold_ > 0.f;
         wheel_hold_ = std::max(0.f, wheel_hold_ - std::max(0.f, dt));
