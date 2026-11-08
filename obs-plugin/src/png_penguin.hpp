@@ -8,6 +8,7 @@
 #include <random>
 #include <array>
 #include <cstdio>
+#include <deque>
 #include "input_events.hpp"
 namespace keycast {
 struct PngLayer {
@@ -70,7 +71,7 @@ struct PngLayer {
 };
 struct PngPenguin {
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
-    PngLayer right_moving, blink_overlay, blink_half;
+    PngLayer right_moving, blink_overlay, blink_half, frenzy_bg;
     std::mt19937 blink_rng{std::random_device{}()};
     std::uniform_real_distribution<float> blink_interval{2.5f, 6.5f};
     float until_blink = blink_interval(blink_rng);
@@ -92,6 +93,7 @@ struct PngPenguin {
         right_moving.set(right_moving.path, true);
         blink_overlay.set(blink_overlay.path, true);
         blink_half.set(blink_half.path, true);
+        frenzy_bg.set(frenzy_bg.path, true);
         for (auto *layer : {&mouse_idle, &mouse_left, &mouse_right, &mouse_middle, &mouse_m4, &mouse_m5})
             if (!layer->path.empty()) layer->set(layer->path, true);
         for (auto &layer : key_overlays) {
@@ -134,6 +136,11 @@ struct PngPenguin {
     }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
+    int frenzy_threshold = 8;
+    float frenzy_clock = 0.f;
+    std::deque<float> frenzy_presses;
+    std::array<bool, 256> previous_key_pressed{};
+    bool frenzy_active = false;
     float left_arm_angle = 0.f;
     float left_arm_max_angle = 24.f;
     float left_arm_pivot_x = 306.f;
@@ -154,14 +161,23 @@ struct PngPenguin {
     float hand_x = 0.f, hand_y = 0.f;
     float mousepad_range_x = 14.f, mousepad_range_y = 8.f;
     void tick(float dt, const InputState &inputs, bool right_down, bool moving, float motion_x, float motion_y) {
+        frenzy_clock += std::max(0.f, dt);
         bool left_down = false;
         float reach = 0.f;
         for (unsigned key = 0; key < key_overlays.size(); ++key) {
-            key_down[key] = key_overlays[key].loaded && inputs.amount(InputKind::Key, key) > 0.f;
+            const bool pressed = inputs.amount(InputKind::Key, key) > 0.f;
+            if (pressed && !previous_key_pressed[key] && key >= 0x08 && key <= 0xFE)
+                frenzy_presses.push_back(frenzy_clock);
+            previous_key_pressed[key] = pressed;
+            key_down[key] = key_overlays[key].loaded && pressed;
             left_down = left_down || (inputs.amount(InputKind::Key, key) > 0.f && keyboard_reach(key) >= 0.f);
             if (inputs.amount(InputKind::Key, key) > 0.f)
                 reach = std::max(reach, keyboard_reach(key));
         }
+        while (!frenzy_presses.empty() && frenzy_clock - frenzy_presses.front() >= 1.f)
+            frenzy_presses.pop_front();
+        frenzy_active = frenzy_threshold > 0 &&
+                        frenzy_presses.size() >= static_cast<size_t>(frenzy_threshold);
         mouse_motion = moving;
         mouse_sprite = 0;
         // A single mouse PNG per frame; deterministic priority for combinations.
@@ -206,6 +222,7 @@ struct PngPenguin {
         bounce += (((left_down || right_down) ? 1.f : 0.f) - bounce) * blend;
     }
     void render() const {
+        if (frenzy_active) frenzy_bg.draw(0, 0);
         background.draw(0, 0);
         body.draw(0, -3.f * bounce);
         if (blink_remaining > 0.f) {
