@@ -34,10 +34,20 @@ void source_update(void *data, obs_data_t *settings)
     state->png.right_idle.set(obs_data_get_string(settings, "png_right_idle"));
     state->png.right_pressed.set(obs_data_get_string(settings, "png_right_pressed"));
     state->png.set_key_folder(obs_data_get_string(settings, "png_key_folder"));
+    state->png.left_arm_max_angle = static_cast<float>(obs_data_get_double(settings, "left_arm_max_angle"));
+    state->png.left_arm_pivot_x = static_cast<float>(obs_data_get_double(settings, "left_arm_pivot_x"));
+    state->png.left_arm_pivot_y = static_cast<float>(obs_data_get_double(settings, "left_arm_pivot_y"));
     state->png.set_mouse_folder(obs_data_get_string(settings, "png_mouse_folder"));
     state->png.right_moving.set(obs_data_get_string(settings, "png_right_moving"));
     state->png.blink_overlay.set(obs_data_get_string(settings, "png_blink_overlay"));
     state->png.blink_half.set(obs_data_get_string(settings, "png_blink_half"));
+}
+
+void source_defaults(obs_data_t *settings)
+{
+    obs_data_set_default_double(settings, "left_arm_max_angle", 24.0);
+    obs_data_set_default_double(settings, "left_arm_pivot_x", 103.0);
+    obs_data_set_default_double(settings, "left_arm_pivot_y", 207.0);
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -100,6 +110,9 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_right_idle", "Right flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_key_folder", "Key overlay folder (A-Z, 0-9, F1-F24, VK_XX.png for other keys)", OBS_PATH_DIRECTORY, nullptr, nullptr);
+    obs_properties_add_float_slider(props, "left_arm_max_angle", "Left arm reach (degrees)", 0.0, 45.0, 1.0);
+    obs_properties_add_float_slider(props, "left_arm_pivot_x", "Left arm pivot X", 0.0, 612.0, 1.0);
+    obs_properties_add_float_slider(props, "left_arm_pivot_y", "Left arm pivot Y", 0.0, 354.0, 1.0);
     obs_properties_add_path(props, "png_mouse_folder", "Mouse sprite folder", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_overlay", "Blink (closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
@@ -120,6 +133,7 @@ bool obs_module_load(void)
     source_info.create = source_create;
     source_info.destroy = source_destroy;
     source_info.update = source_update;
+    source_info.get_defaults = source_defaults;
     source_info.video_tick = source_tick;
     source_info.video_render = source_render;
     source_info.get_width = source_width;
