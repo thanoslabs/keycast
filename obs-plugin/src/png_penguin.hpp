@@ -39,6 +39,16 @@ struct PngLayer {
         }
         obs_leave_graphics();
     }
+    void draw_rotated(float x, float y, float angle_degrees, float pivot_x, float pivot_y) const {
+        if (!loaded) return;
+        constexpr float radians = 0.01745329251994329577f;
+        gs_matrix_push();
+        gs_matrix_translate3f(pivot_x, pivot_y, 0.f);
+        gs_matrix_rotaa4f(0.f, 0.f, 1.f, angle_degrees * radians);
+        gs_matrix_translate3f(-pivot_x, -pivot_y, 0.f);
+        draw(x, y);
+        gs_matrix_pop();
+    }
     void draw(float x, float y, float opacity = 1.f) const {
         if (!loaded) return;
         gs_effect_t *effect = obs_get_base_effect(OBS_EFFECT_DEFAULT);
@@ -124,14 +134,33 @@ struct PngPenguin {
     }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
+    float left_arm_angle = 0.f;
+    float left_arm_max_angle = 24.f;
+    float left_arm_pivot_x = 103.f;
+    float left_arm_pivot_y = 207.f;
+    static float keyboard_reach(unsigned key) {
+        // Approximate horizontal reach across the visible left keyboard.
+        // Q/A/1 are home; 3/4/W/E reach center; 5/R/T/D/F reach right.
+        switch (key) {
+            case '1': case 'Q': case 'A': case 'Z': return 0.f;
+            case '2': case 'S': case 'X': return 0.20f;
+            case '3': case 'W': case 'E': case 'C': return 0.45f;
+            case '4': case 'D': case 'V': return 0.68f;
+            case '5': case 'R': case 'T': case 'F': case 'G': case 'B': return 1.f;
+            default: return -1.f;
+        }
+    }
     bool mouse_motion = false;
     float hand_x = 0.f, hand_y = 0.f;
     float mousepad_range_x = 14.f, mousepad_range_y = 8.f;
     void tick(float dt, const InputState &inputs, bool right_down, bool moving, float motion_x, float motion_y) {
         bool left_down = false;
+        float reach = 0.f;
         for (unsigned key = 0; key < key_overlays.size(); ++key) {
             key_down[key] = key_overlays[key].loaded && inputs.amount(InputKind::Key, key) > 0.f;
             left_down = left_down || key_down[key];
+            if (inputs.amount(InputKind::Key, key) > 0.f)
+                reach = std::max(reach, keyboard_reach(key));
         }
         mouse_motion = moving;
         mouse_sprite = 0;
@@ -170,6 +199,8 @@ struct PngPenguin {
         }
         const float blend = 1.f - std::exp(-std::clamp(dt, 0.f, .1f) * 18.f);
         keyboard_down = left_down;
+        const float target_angle = left_down ? reach * left_arm_max_angle : 0.f;
+        left_arm_angle += (target_angle - left_arm_angle) * blend;
         left += ((left_down ? 1.f : 0.f) - left) * blend;
         right += ((right_down ? 1.f : 0.f) - right) * blend;
         bounce += (((left_down || right_down) ? 1.f : 0.f) - bounce) * blend;
@@ -192,7 +223,7 @@ struct PngPenguin {
         }
         for (unsigned key = 0; key < key_overlays.size(); ++key)
             if (key_down[key]) key_overlays[key].draw(0, 0);
-        (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw(0, -3.f * bounce);
+        (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw_rotated(0, -3.f * bounce, left_arm_angle, left_arm_pivot_x, left_arm_pivot_y);
         // Mouse and right flipper share the same bounded movement transform.
         // Draw mouse first so the flipper appears naturally on top of it.
         const PngLayer *mouse = &mouse_idle;
