@@ -68,7 +68,11 @@ struct PngLayer {
         if (!texture) return;
         gs_blend_state_push();
         gs_enable_blending(true);
-        gs_blend_function(GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA);
+        // Preserve correct coverage alpha in OBS transparent sources. Using the
+        // same SRCALPHA factor for the alpha channel squares edge alpha,
+        // causing dark seams when OBS composites the source over a scene.
+        gs_blend_function_separate(GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA,
+                                   GS_BLEND_ONE, GS_BLEND_INVSRCALPHA);
         gs_matrix_push();
         gs_matrix_translate3f(std::round(x), std::round(y), 0.f);
         gs_effect_set_texture(texture, image.texture);
