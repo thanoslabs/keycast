@@ -21,38 +21,65 @@ class WindowsInputPoller {
     inline static std::atomic<bool> wheel_event_{false};
     std::thread wheel_thread_;
     std::atomic<DWORD> wheel_thread_id_{0};
-    static LRESULT CALLBACK wheel_callback(int code, WPARAM message, LPARAM data) {
-        if (code >= 0 && (message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL))
-            wheel_event_.store(true, std::memory_order_relaxed);
-        return CallNextHookEx(nullptr, code, message, data);
-    }
-    void run_wheel_hook() {
-        // Low-level hooks execute on their installing thread. Give that thread
-        // its own message pump so OBS rendering cannot delay game input.
-        MSG msg{};
-        PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
-        const HHOOK hook = SetWindowsHookExW(WH_MOUSE_LL, wheel_callback,
-                                            GetModuleHandleW(nullptr), 0);
-        wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
-        while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
-            TranslateMessage(&msg);
-            DispatchMessageW(&msg);
+    static LRESULT CALLBACK raw_window_proc(HWND window, UINT message, WPARAM wparam, LPARAM lparam) {
+        if (message == WM_INPUT) {
+            RAWINPUT input{};
+            UINT size = sizeof(input);
+            if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT,
+                                &input, &size, sizeof(RAWINPUTHEADER)) != UINT(-1) &&
+                input.header.dwType == RIM_TYPEMOUSE &&
+                (input.data.mouse.usButtonFlags & (RI_MOUSE_WHEEL | RI_MOUSE_HWHEEL)))
+                wheel_event_.store(true, std::memory_order_relaxed);
+            return 0;
         }
-        if (hook) UnhookWindowsHookEx(hook);
+        return DefWindowProcW(window, message, wparam, lparam);
+    }
+    void run_wheel_input() {
+        const HINSTANCE instance = GetModuleHandleW(nullptr);
+        const wchar_t *class_name = L"KeycastRawWheelInput";
+        WNDCLASSW cls{};
+        cls.lpfnWndProc = raw_window_proc;
+        cls.hInstance = instance;
+        cls.lpszClassName = class_name;
+        RegisterClassW(&cls);
+        HWND window = CreateWindowExW(0, class_name, L"", 0, 0, 0, 0, 0,
+                                      HWND_MESSAGE, nullptr, instance, nullptr);
+        if (window) {
+            RAWINPUTDEVICE device{};
+            device.usUsagePage = 0x01;
+            device.usUsage = 0x02;
+            device.dwFlags = RIDEV_INPUTSINK;
+            device.hwndTarget = window;
+            if (RegisterRawInputDevices(&device, 1, sizeof(device))) {
+                wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
+                MSG msg{};
+                while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
+                    TranslateMessage(&msg);
+                    DispatchMessageW(&msg);
+                }
+                device.dwFlags = RIDEV_REMOVE;
+                device.hwndTarget = nullptr;
+                RegisterRawInputDevices(&device, 1, sizeof(device));
+            } else {
+                wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
+            }
+            DestroyWindow(window);
+        } else {
+            wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
+        }
     }
 #endif
     mutable float wheel_hold_ = 0.f;
 public:
     WindowsInputPoller() {
 #ifdef _WIN32
-        wheel_thread_ = std::thread([this] { run_wheel_hook(); });
+        wheel_thread_ = std::thread([this] { run_wheel_input(); });
 #endif
     }
     ~WindowsInputPoller() {
 #ifdef _WIN32
-        const DWORD thread_id = wheel_thread_id_.load(std::memory_order_acquire);
         if (wheel_thread_.joinable()) {
-            // Thread ID is published only after its message queue exists.
+            // Wait until the input thread has created its window/message queue.
             while (wheel_thread_id_.load(std::memory_order_acquire) == 0)
                 std::this_thread::yield();
             PostThreadMessageW(wheel_thread_id_.load(std::memory_order_acquire), WM_QUIT, 0, 0);
