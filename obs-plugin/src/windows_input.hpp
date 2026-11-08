@@ -30,20 +30,20 @@ class WindowsInputPoller {
                 input.header.dwType == RIM_TYPEMOUSE &&
                 (input.data.mouse.usButtonFlags & (RI_MOUSE_WHEEL | RI_MOUSE_HWHEEL)))
                 wheel_event_.store(true, std::memory_order_relaxed);
-            return 0;
+            return DefWindowProcW(window, message, wparam, lparam);
         }
         return DefWindowProcW(window, message, wparam, lparam);
     }
     void run_wheel_input() {
         const HINSTANCE instance = GetModuleHandleW(nullptr);
-        const wchar_t *class_name = L"KeycastRawWheelInput";
+        const std::wstring class_name = L"KeycastRawWheelInput_" + std::to_wstring(GetCurrentThreadId());
         WNDCLASSW cls{};
         cls.lpfnWndProc = raw_window_proc;
         cls.hInstance = instance;
-        cls.lpszClassName = class_name;
+        cls.lpszClassName = class_name.c_str();
         RegisterClassW(&cls);
-        HWND window = CreateWindowExW(0, class_name, L"", 0, 0, 0, 0, 0,
-                                      HWND_MESSAGE, nullptr, instance, nullptr);
+        HWND window = CreateWindowExW(0, class_name.c_str(), L"", WS_OVERLAPPED,
+                                      0, 0, 0, 0, nullptr, nullptr, instance, nullptr);
         if (window) {
             RAWINPUTDEVICE device{};
             device.usUsagePage = 0x01;
@@ -64,6 +64,7 @@ class WindowsInputPoller {
                 wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
             }
             DestroyWindow(window);
+            UnregisterClassW(class_name.c_str(), instance);
         } else {
             wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
         }
