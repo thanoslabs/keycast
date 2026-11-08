@@ -16,6 +16,7 @@ struct PngLayer {
     std::string path;
     bool initialized = false;
     bool loaded = false;
+    inline static thread_local gs_samplerstate_t *active_sampler = nullptr;
     void release() {
         if (initialized) {
             obs_enter_graphics();
@@ -60,8 +61,9 @@ struct PngLayer {
         gs_enable_blending(true);
         gs_blend_function(GS_BLEND_SRCALPHA, GS_BLEND_INVSRCALPHA);
         gs_matrix_push();
-        gs_matrix_translate3f(x, y, 0.f);
+        gs_matrix_translate3f(std::round(x), std::round(y), 0.f);
         gs_effect_set_texture(texture, image.texture);
+        if (active_sampler) gs_effect_set_next_sampler(texture, active_sampler);
         while (gs_effect_loop(effect, "Draw"))
             gs_draw_sprite(image.texture, 0, image.cx, image.cy);
         gs_matrix_pop();
@@ -70,6 +72,15 @@ struct PngLayer {
     }
 };
 struct PngPenguin {
+    bool nearest_filtering = false;
+    mutable gs_samplerstate_t *nearest_sampler = nullptr;
+    ~PngPenguin() {
+        if (nearest_sampler) {
+            obs_enter_graphics();
+            gs_samplerstate_destroy(nearest_sampler);
+            obs_leave_graphics();
+        }
+    }
     PngLayer background, body, left_idle, left_pressed, right_idle, right_pressed;
     PngLayer right_moving, blink_overlay, blink_half, frenzy_bg;
     std::mt19937 blink_rng{std::random_device{}()};
@@ -222,6 +233,17 @@ struct PngPenguin {
         bounce += (((left_down || right_down) ? 1.f : 0.f) - bounce) * blend;
     }
     void render() const {
+        // Nearest-neighbor sampling avoids interpolating transparent edge RGB into
+        // adjacent layers. Use the OBS default linear sampler when disabled.
+        if (nearest_filtering && !nearest_sampler) {
+            gs_sampler_info info{};
+            info.filter = GS_FILTER_POINT;
+            info.address_u = GS_ADDRESS_CLAMP;
+            info.address_v = GS_ADDRESS_CLAMP;
+            info.address_w = GS_ADDRESS_CLAMP;
+            nearest_sampler = gs_samplerstate_create(&info);
+        }
+        PngLayer::active_sampler = nearest_filtering ? nearest_sampler : nullptr;
         if (frenzy_active) frenzy_bg.draw(0, 0);
         background.draw(0, 0);
         body.draw(0, -3.f * bounce);
@@ -252,6 +274,7 @@ struct PngPenguin {
         else if (mouse_sprite == 5 && mouse_m5.loaded) overlay = &mouse_m5;
         if (overlay) overlay->draw(hand_x, hand_y - 3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(hand_x, hand_y - 3.f * bounce);
+        PngLayer::active_sampler = nullptr;
     }
 };
 }
