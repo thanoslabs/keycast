@@ -27,6 +27,8 @@ const char *source_name(void *) { return "Keycast Avatar"; }
 void source_update(void *data, obs_data_t *settings)
 {
     auto *state = static_cast<KeycastSource *>(data);
+    state->png.frenzy_bg.set(obs_data_get_string(settings, "png_frenzy_bg"));
+    state->png.frenzy_threshold = static_cast<int>(obs_data_get_int(settings, "frenzy_threshold"));
     state->png.background.set(obs_data_get_string(settings, "png_background"));
     state->png.body.set(obs_data_get_string(settings, "png_body"));
     state->png.left_idle.set(obs_data_get_string(settings, "png_left_idle"));
@@ -45,6 +47,7 @@ void source_update(void *data, obs_data_t *settings)
 
 void source_defaults(obs_data_t *settings)
 {
+    obs_data_set_default_int(settings, "frenzy_threshold", 8);
     obs_data_set_default_double(settings, "left_arm_max_angle", 24.0);
     obs_data_set_default_double(settings, "left_arm_pivot_x", 103.0);
     obs_data_set_default_double(settings, "left_arm_pivot_y", 207.0);
@@ -103,6 +106,8 @@ obs_properties_t *source_properties(void *)
 {
     auto *props = obs_properties_create();
     const char *png_filter = "PNG image (*.png)";
+    obs_properties_add_path(props, "png_frenzy_bg", "Frenzy background PNG", OBS_PATH_FILE, png_filter, nullptr);
+    obs_properties_add_int_slider(props, "frenzy_threshold", "Frenzy key presses per second", 2, 30, 1);
     obs_properties_add_path(props, "png_background", "Background PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_body", "Penguin body PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_left_idle", "Left flipper idle PNG", OBS_PATH_FILE, png_filter, nullptr);
