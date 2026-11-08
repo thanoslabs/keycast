@@ -27,6 +27,7 @@ const char *source_name(void *) { return "Keycast Avatar"; }
 void source_update(void *data, obs_data_t *settings)
 {
     auto *state = static_cast<KeycastSource *>(data);
+    state->png_poller.set_wheel_mode(static_cast<int>(obs_data_get_int(settings, "wheel_detection_mode")));
     state->png.background.set(obs_data_get_string(settings, "png_background"));
     state->png.body.set(obs_data_get_string(settings, "png_body"));
     state->png.left_idle.set(obs_data_get_string(settings, "png_left_idle"));
@@ -46,8 +47,9 @@ void source_update(void *data, obs_data_t *settings)
 void source_defaults(obs_data_t *settings)
 {
     obs_data_set_default_double(settings, "left_arm_max_angle", 24.0);
-    obs_data_set_default_double(settings, "left_arm_pivot_x", 103.0);
-    obs_data_set_default_double(settings, "left_arm_pivot_y", 207.0);
+    obs_data_set_default_double(settings, "left_arm_pivot_x", 306.0);
+    obs_data_set_default_double(settings, "left_arm_pivot_y", 177.0);
+    obs_data_set_default_int(settings, "wheel_detection_mode", 0);
 }
 
 void *source_create(obs_data_t *settings, obs_source_t *source)
@@ -99,6 +101,19 @@ bool reload_assets(obs_properties_t *, obs_property_t *, void *data)
     return true;
 }
 
+bool reset_left_arm(obs_properties_t *, obs_property_t *, void *data)
+{
+    auto *state = static_cast<KeycastSource *>(data);
+    if (!state || !state->source) return false;
+    obs_data_t *settings = obs_source_get_settings(state->source);
+    obs_data_set_double(settings, "left_arm_max_angle", 24.0);
+    obs_data_set_double(settings, "left_arm_pivot_x", 306.0);
+    obs_data_set_double(settings, "left_arm_pivot_y", 177.0);
+    obs_source_update(state->source, settings);
+    obs_data_release(settings);
+    return true;
+}
+
 obs_properties_t *source_properties(void *)
 {
     auto *props = obs_properties_create();
@@ -111,8 +126,13 @@ obs_properties_t *source_properties(void *)
     obs_properties_add_path(props, "png_right_pressed", "Right flipper pressed PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_key_folder", "Key overlay folder (A-Z, 0-9, F1-F24, VK_XX.png for other keys)", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_float_slider(props, "left_arm_max_angle", "Left arm reach (degrees)", 0.0, 45.0, 1.0);
-    obs_properties_add_float_slider(props, "left_arm_pivot_x", "Left arm pivot X", 0.0, 612.0, 1.0);
-    obs_properties_add_float_slider(props, "left_arm_pivot_y", "Left arm pivot Y", 0.0, 354.0, 1.0);
+    obs_properties_add_float_slider(props, "left_arm_pivot_x", "Left arm anchor X", 0.0, 612.0, 1.0);
+    obs_properties_add_float_slider(props, "left_arm_pivot_y", "Left arm anchor Y", 0.0, 354.0, 1.0);
+    obs_properties_add_button(props, "left_arm_reset", "Reset left arm defaults", reset_left_arm);
+    auto *wheel = obs_properties_add_list(props, "wheel_detection_mode", "Mouse wheel detection",
+                                          OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
+    obs_property_list_add_int(wheel, "Raw Input (recommended)", 0);
+    obs_property_list_add_int(wheel, "Low-level hook (compatibility)", 1);
     obs_properties_add_path(props, "png_mouse_folder", "Mouse sprite folder", OBS_PATH_DIRECTORY, nullptr, nullptr);
     obs_properties_add_path(props, "png_right_moving", "Right flipper moving PNG", OBS_PATH_FILE, png_filter, nullptr);
     obs_properties_add_path(props, "png_blink_overlay", "Blink (closed eyes) PNG", OBS_PATH_FILE, png_filter, nullptr);
