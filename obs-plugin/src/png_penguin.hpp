@@ -41,6 +41,15 @@ struct PngLayer {
         }
         obs_leave_graphics();
     }
+    void advance_animation(float dt) {
+        if (!loaded || !image.is_animated_gif || dt <= 0.f) return;
+        const uint64_t elapsed_ns = static_cast<uint64_t>(std::min(dt, 0.25f) * 1000000000.0);
+        if (gs_image_file_tick(&image, elapsed_ns)) {
+            obs_enter_graphics();
+            gs_image_file_update_texture(&image);
+            obs_leave_graphics();
+        }
+    }
     void draw_rotated(float x, float y, float angle_degrees, float pivot_x, float pivot_y) const {
         if (!loaded) return;
         constexpr float radians = 0.01745329251994329577f;
@@ -189,6 +198,9 @@ struct PngPenguin {
             frenzy_presses.pop_front();
         frenzy_active = frenzy_threshold > 0 &&
                         frenzy_presses.size() >= static_cast<size_t>(frenzy_threshold);
+        // Advance animated GIF frames only while the frenzy layer is visible.
+        // Static PNGs are unaffected; GIFs pause when frenzy ends.
+        if (frenzy_active) frenzy_bg.advance_animation(dt);
         mouse_motion = moving;
         mouse_sprite = 0;
         // A single mouse PNG per frame; deterministic priority for combinations.
