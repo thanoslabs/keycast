@@ -4,6 +4,7 @@
 #include <cmath>
 #include <atomic>
 #include <thread>
+#include <string>
 #ifdef _WIN32
 #ifndef NOMINMAX
 #define NOMINMAX
@@ -20,44 +21,99 @@ class WindowsInputPoller {
 #ifdef _WIN32
     inline static std::atomic<bool> wheel_event_{false};
     std::thread wheel_thread_;
+    std::atomic<int> wheel_mode_{0}; // 0 = Raw Input, 1 = low-level hook
     std::atomic<DWORD> wheel_thread_id_{0};
     static LRESULT CALLBACK wheel_callback(int code, WPARAM message, LPARAM data) {
         if (code >= 0 && (message == WM_MOUSEWHEEL || message == WM_MOUSEHWHEEL))
             wheel_event_.store(true, std::memory_order_relaxed);
         return CallNextHookEx(nullptr, code, message, data);
     }
-    void run_wheel_hook() {
-        // Low-level hooks execute on their installing thread. Give that thread
-        // its own message pump so OBS rendering cannot delay game input.
+    static LRESULT CALLBACK raw_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
+        if (message == WM_INPUT) {
+            RAWINPUT input{};
+            UINT size = sizeof(input);
+            if (GetRawInputData(reinterpret_cast<HRAWINPUT>(lparam), RID_INPUT, &input,
+                                &size, sizeof(RAWINPUTHEADER)) != UINT(-1) &&
+                input.header.dwType == RIM_TYPEMOUSE &&
+                (input.data.mouse.usButtonFlags & (RI_MOUSE_WHEEL | RI_MOUSE_HWHEEL)))
+                wheel_event_.store(true, std::memory_order_relaxed);
+        }
+        return DefWindowProcW(hwnd, message, wparam, lparam);
+    }
+    void run_wheel_listener() {
         MSG msg{};
         PeekMessageW(&msg, nullptr, WM_USER, WM_USER, PM_NOREMOVE);
-        const HHOOK hook = SetWindowsHookExW(WH_MOUSE_LL, wheel_callback,
-                                            GetModuleHandleW(nullptr), 0);
+        const HINSTANCE instance = GetModuleHandleW(nullptr);
+        const std::wstring class_name = L"KeycastWheel_" + std::to_wstring(GetCurrentThreadId());
+        WNDCLASSW cls{};
+        cls.lpfnWndProc = raw_proc;
+        cls.hInstance = instance;
+        cls.lpszClassName = class_name.c_str();
+        RegisterClassW(&cls);
+        HWND window = CreateWindowExW(0, class_name.c_str(), L"", WS_OVERLAPPED,
+                                      0, 0, 0, 0, nullptr, nullptr, instance, nullptr);
+        HHOOK hook = nullptr;
+        bool raw_registered = false;
+        if (window && wheel_mode_.load() == 0) {
+            RAWINPUTDEVICE device{};
+            device.usUsagePage = 1;
+            device.usUsage = 2;
+            device.dwFlags = RIDEV_INPUTSINK;
+            device.hwndTarget = window;
+            raw_registered = RegisterRawInputDevices(&device, 1, sizeof(device)) != FALSE;
+        }
+        if (wheel_mode_.load() == 1)
+            hook = SetWindowsHookExW(WH_MOUSE_LL, wheel_callback, instance, 0);
         wheel_thread_id_.store(GetCurrentThreadId(), std::memory_order_release);
         while (GetMessageW(&msg, nullptr, 0, 0) > 0) {
             TranslateMessage(&msg);
             DispatchMessageW(&msg);
         }
         if (hook) UnhookWindowsHookEx(hook);
+        if (raw_registered) {
+            RAWINPUTDEVICE device{};
+            device.usUsagePage = 1;
+            device.usUsage = 2;
+            device.dwFlags = RIDEV_REMOVE;
+            RegisterRawInputDevices(&device, 1, sizeof(device));
+        }
+        if (window) DestroyWindow(window);
+        UnregisterClassW(class_name.c_str(), instance);
+    }
+    void stop_wheel_listener() {
+        if (!wheel_thread_.joinable()) return;
+        while (wheel_thread_id_.load(std::memory_order_acquire) == 0)
+            std::this_thread::yield();
+        PostThreadMessageW(wheel_thread_id_.load(std::memory_order_acquire), WM_QUIT, 0, 0);
+        wheel_thread_.join();
+        wheel_thread_id_.store(0, std::memory_order_release);
+    }
+    void start_wheel_listener() {
+        wheel_event_.store(false, std::memory_order_relaxed);
+        wheel_thread_ = std::thread([this] { run_wheel_listener(); });
     }
 #endif
     mutable float wheel_hold_ = 0.f;
 public:
     WindowsInputPoller() {
 #ifdef _WIN32
-        wheel_thread_ = std::thread([this] { run_wheel_hook(); });
+        start_wheel_listener();
 #endif
     }
     ~WindowsInputPoller() {
 #ifdef _WIN32
-        const DWORD thread_id = wheel_thread_id_.load(std::memory_order_acquire);
-        if (wheel_thread_.joinable()) {
-            // Thread ID is published only after its message queue exists.
-            while (wheel_thread_id_.load(std::memory_order_acquire) == 0)
-                std::this_thread::yield();
-            PostThreadMessageW(wheel_thread_id_.load(std::memory_order_acquire), WM_QUIT, 0, 0);
-            wheel_thread_.join();
-        }
+        stop_wheel_listener();
+#endif
+    }
+    void set_wheel_mode(int mode) {
+#ifdef _WIN32
+        mode = mode == 1 ? 1 : 0;
+        if (wheel_mode_.load() == mode) return;
+        stop_wheel_listener();
+        wheel_mode_.store(mode);
+        start_wheel_listener();
+#else
+        (void)mode;
 #endif
     }
     WindowsInputPoller(const WindowsInputPoller &) = delete;
