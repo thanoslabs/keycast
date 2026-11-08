@@ -123,7 +123,8 @@ obs_properties_t *source_properties(void *)
 {
     auto *props = obs_properties_create();
     const char *png_filter = "PNG image (*.png)";
-    obs_properties_add_path(props, "png_frenzy_bg", "Frenzy background PNG", OBS_PATH_FILE, png_filter, nullptr);
+    const char *frenzy_filter = "PNG or animated GIF (*.png *.gif)";
+    obs_properties_add_path(props, "png_frenzy_bg", "Frenzy background (PNG/GIF)", OBS_PATH_FILE, frenzy_filter, nullptr);
     obs_properties_add_int_slider(props, "frenzy_threshold", "Frenzy key presses per second", 2, 30, 1);
     obs_properties_add_bool(props, "png_nearest_filtering", "Pixel-perfect PNG sampling (reduce edge seams)");
     obs_properties_add_path(props, "png_background", "Background PNG", OBS_PATH_FILE, png_filter, nullptr);
