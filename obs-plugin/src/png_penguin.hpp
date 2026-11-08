@@ -136,15 +136,15 @@ struct PngPenguin {
     }
     float left = 0.f, right = 0.f, bounce = 0.f;
     bool keyboard_down = false;
-    int frenzy_threshold = 8; // distinct key-down events per rolling second
+    int frenzy_threshold = 8;
     float frenzy_clock = 0.f;
     std::deque<float> frenzy_presses;
     std::array<bool, 256> previous_key_pressed{};
     bool frenzy_active = false;
     float left_arm_angle = 0.f;
     float left_arm_max_angle = 24.f;
-    float left_arm_pivot_x = 103.f;
-    float left_arm_pivot_y = 207.f;
+    float left_arm_pivot_x = 306.f;
+    float left_arm_pivot_y = 177.f;
     static float keyboard_reach(unsigned key) {
         // Approximate horizontal reach across the visible left keyboard.
         // Q/A/1 are home; 3/4/W/E reach center; 5/R/T/D/F reach right.
@@ -243,13 +243,14 @@ struct PngPenguin {
         (left > .5f && left_pressed.loaded ? left_pressed : left_idle).draw_rotated(0, -3.f * bounce, left_arm_angle, left_arm_pivot_x, left_arm_pivot_y);
         // Mouse and right flipper share the same bounded movement transform.
         // Draw mouse first so the flipper appears naturally on top of it.
-        const PngLayer *mouse = &mouse_idle;
-        if (mouse_sprite == 1 && mouse_left.loaded) mouse = &mouse_left;
-        else if (mouse_sprite == 2 && mouse_right.loaded) mouse = &mouse_right;
-        else if (mouse_sprite == 3 && mouse_middle.loaded) mouse = &mouse_middle;
-        else if (mouse_sprite == 4 && mouse_m4.loaded) mouse = &mouse_m4;
-        else if (mouse_sprite == 5 && mouse_m5.loaded) mouse = &mouse_m5;
-        mouse->draw(hand_x, hand_y - 3.f * bounce);
+        mouse_idle.draw(hand_x, hand_y - 3.f * bounce);
+        const PngLayer *overlay = nullptr;
+        if (mouse_sprite == 1 && mouse_left.loaded) overlay = &mouse_left;
+        else if (mouse_sprite == 2 && mouse_right.loaded) overlay = &mouse_right;
+        else if (mouse_sprite == 3 && mouse_middle.loaded) overlay = &mouse_middle;
+        else if (mouse_sprite == 4 && mouse_m4.loaded) overlay = &mouse_m4;
+        else if (mouse_sprite == 5 && mouse_m5.loaded) overlay = &mouse_m5;
+        if (overlay) overlay->draw(hand_x, hand_y - 3.f * bounce);
         (right > .5f && right_pressed.loaded ? right_pressed : (mouse_motion && right_moving.loaded ? right_moving : right_idle)).draw(hand_x, hand_y - 3.f * bounce);
     }
 };
