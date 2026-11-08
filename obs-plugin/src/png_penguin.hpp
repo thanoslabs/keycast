@@ -42,7 +42,7 @@ struct PngLayer {
         obs_leave_graphics();
     }
     void advance_animation(float dt) {
-        if (!loaded || !image.is_animated || dt <= 0.f) return;
+        if (!loaded || !image.is_animated_gif || dt <= 0.f) return;
         const uint64_t elapsed_ns = static_cast<uint64_t>(std::min(dt, 0.25f) * 1000000000.0);
         if (gs_image_file_tick(&image, elapsed_ns)) {
             obs_enter_graphics();
