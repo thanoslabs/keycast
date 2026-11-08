@@ -63,7 +63,7 @@ struct PngLayer {
         gs_matrix_push();
         gs_matrix_translate3f(std::round(x), std::round(y), 0.f);
         gs_effect_set_texture(texture, image.texture);
-        if (active_sampler) gs_effect_set_next_sampler(effect, "image", active_sampler);
+        if (active_sampler) gs_effect_set_next_sampler(texture, active_sampler);
         while (gs_effect_loop(effect, "Draw"))
             gs_draw_sprite(image.texture, 0, image.cx, image.cy);
         gs_matrix_pop();
