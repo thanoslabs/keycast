@@ -158,7 +158,7 @@ struct PngPenguin {
         float reach = 0.f;
         for (unsigned key = 0; key < key_overlays.size(); ++key) {
             key_down[key] = key_overlays[key].loaded && inputs.amount(InputKind::Key, key) > 0.f;
-            left_down = left_down || key_down[key];
+            left_down = left_down || (inputs.amount(InputKind::Key, key) > 0.f && keyboard_reach(key) >= 0.f);
             if (inputs.amount(InputKind::Key, key) > 0.f)
                 reach = std::max(reach, keyboard_reach(key));
         }
